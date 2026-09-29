@@ -1,0 +1,11 @@
+.env
+.env.*
+**/.venv
+**/node_modules
+frontend/dist
+**/__pycache__
+**/*.db
+**/.pytest_cache
+docs
+*.pptx
+*.pdf

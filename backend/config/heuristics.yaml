@@ -1,0 +1,41 @@
+# Attribution thresholds and weights. Tune against scripts/eval_hide_and_seek.py.
+
+deposit_sweep:
+  min_out_share: 0.9            # share of outflow (USD) going to one labelled exchange hot wallet
+  max_out_counterparties: 3     # deposit addresses talk to very few destinations
+  max_sweep_delay_hours: 24     # traced funds' arrival -> first sweep to the hot wallet
+
+service_like:
+  # Adapters return a sample of the latest <=200 transfers, so thresholds are sample-based.
+  min_sample_counterparties: 60
+  full_page_within_days: 3      # a full 200-transfer page inside this many days = high-throughput service
+
+weights:
+  label_tier: 0.9
+  sweep: 0.7
+  ext_tag: 0.5
+  value: 0.4
+  recency: 0.2
+
+label_tier_score:
+  verified: 1.0
+  published: 0.95
+  curated: 0.8
+  community: 0.6
+  inferred: 0.5
+
+path_factor:
+  clean: 1.0
+  bridge: 0.7
+  mixer: 0.0
+
+recency:
+  full_days: 7
+  zero_days: 90
+
+actionability:
+  fiu_and_sahyog: 1.0
+  fiu_only: 0.9
+  sahyog_only: 0.85
+  foreign_le_portal: 0.6
+  unknown: 0.3

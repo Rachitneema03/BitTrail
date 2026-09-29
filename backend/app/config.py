@@ -1,0 +1,51 @@
+from functools import lru_cache
+from pathlib import Path
+
+import yaml
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = BACKEND_DIR.parent
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=(ROOT_DIR / ".env", BACKEND_DIR / ".env"), extra="ignore")
+
+    database_url: str = f"sqlite:///{BACKEND_DIR / 'bittrail.db'}"
+    jwt_secret: str = "change-me-in-production"
+    demo_mode: bool = False  # serve blockchain data from cache only
+
+    trongrid_api_key: str = ""
+    etherscan_api_key: str = ""
+
+    trace_max_depth: int = 5
+    trace_fanout: int = 5
+    trace_min_usd: float = 10.0
+    trace_max_edges: int = 2000
+    trace_window_days: int = 90
+    trace_back_depth: int = 2
+
+    watch_interval_seconds: int = 300
+    cors_origins: str = "*"
+    frontend_dist: str = str(ROOT_DIR / "frontend" / "dist")
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
+
+
+@lru_cache
+def settings() -> Settings:
+    s = Settings()
+    # Railway / Heroku style URLs -> SQLAlchemy psycopg3 driver
+    if s.database_url.startswith("postgres://"):
+        s.database_url = "postgresql+psycopg://" + s.database_url[len("postgres://"):]
+    elif s.database_url.startswith("postgresql://"):
+        s.database_url = "postgresql+psycopg://" + s.database_url[len("postgresql://"):]
+    return s
+
+
+@lru_cache
+def heuristics() -> dict:
+    with open(BACKEND_DIR / "config" / "heuristics.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)

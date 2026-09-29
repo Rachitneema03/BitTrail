@@ -1,0 +1,27 @@
+{
+  "_note": "Wallets are real public on-chain addresses used as demo inputs. Case metadata (FIR, NCRP ID, station, amounts) is fictional. No real personal data.",
+  "cases": [
+    {
+      "title": "Fake trading app: USDT investment scam (demo)",
+      "fir_no": "DEMO-0417/2026",
+      "ncrp_id": "DEMO-NCRP-0001",
+      "police_station": "Cyber Police Station, Pune City",
+      "state": "Maharashtra",
+      "fraud_type": "Investment scam",
+      "fraud_time": "2026-09-10T00:00:00Z",
+      "amount_inr": 350000,
+      "wallets": [{"address": "TKxQN5iF6jUGd8h4yuAXYX1oBGciCdWB5P"}]
+    },
+    {
+      "title": "Task-based part-time job scam (demo)",
+      "fir_no": "DEMO-1102/2026",
+      "ncrp_id": "DEMO-NCRP-0002",
+      "police_station": "IFSO Cyber Cell, New Delhi",
+      "state": "Delhi",
+      "fraud_type": "Job / task scam",
+      "fraud_time": "2026-09-12T00:00:00Z",
+      "amount_inr": 85000,
+      "wallets": [{"address": "TD1Jp17FZd4ZbDUZc729qATqkxFBwF21WM"}]
+    }
+  ]
+}

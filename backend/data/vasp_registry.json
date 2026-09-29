@@ -1,0 +1,21 @@
+{
+  "_note": "Hand-curated from public reporting (2024-2026). Values marked null are unknown. Verify with FIU-IND / I4C before operational use. Nodal contacts are placeholders.",
+  "vasps": [
+    {"name": "Binance", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration widely reported (2024)"},
+    {"name": "KuCoin", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration widely reported (2024)"},
+    {"name": "Bybit", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration reported (2025)"},
+    {"name": "Bitget", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": true, "status_source": "Bitget press release: onboarded on I4C Sahyog (Jun 2025)"},
+    {"name": "CoinDCX", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "WazirX", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "CoinSwitch", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "ZebPay", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "Mudrex", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "Giottus", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "Bitbns", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "Unocoin", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
+    {"name": "OKX", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Exited Indian market (2024); foreign request route"},
+    {"name": "HTX", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"},
+    {"name": "Coinbase", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"},
+    {"name": "Kraken", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"}
+  ]
+}
