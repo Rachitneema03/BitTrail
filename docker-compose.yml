@@ -1,0 +1,27 @@
+# Local fallback: app + its own Postgres. `docker compose up --build` -> http://localhost:8000
+# (To use Supabase instead, remove the db service and set DATABASE_URL in .env.)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bittrail
+      POSTGRES_PASSWORD: bittrail
+      POSTGRES_DB: bittrail
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bittrail"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql://bittrail:bittrail@db:5432/bittrail
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret}
+      TRONGRID_API_KEY: ${TRONGRID_API_KEY:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      DEMO_MODE: ${DEMO_MODE:-false}
+    depends_on:
+      db: { condition: service_healthy }
+volumes:
+  pgdata:
