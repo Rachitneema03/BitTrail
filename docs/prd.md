@@ -20,7 +20,7 @@
 |---|---|
 | **Investigating Officer (IO)**, state cyber cell | Paste a wallet, get "which exchange, how sure, what to send" without blockchain expertise |
 | **I4C / Sahyog analyst** | See cases linked across states, prioritise freezes, track requests |
-| **VASP nodal officer** (simulated) | Receive precise requests with transaction-level evidence; confirm or deny |
+| **VASP nodal officer** (via Sahyog, not a BitTrail user) | Receive precise requests with transaction-level evidence on Sahyog; confirm or deny there |
 | **Supervisor / prosecutor** (read-only) | A court-ready report with reproducible evidence |
 
 ## 3. Goals and non-goals
@@ -61,7 +61,7 @@
 - **US-7** As an IO, I generate a pre-filled disclosure or freeze notice for the chosen VASP and "send" it through Sahyog.
 - **US-8** As an I4C analyst, I'm told when a new case shares a deposit address with an existing case.
 - **US-9** As an IO, I'm alerted when funds on a watched path move, especially into an exchange.
-- **US-10** As a (simulated) VASP officer, I confirm or deny ownership of a deposit address, and the system learns from it (the labels flywheel).
+- **US-10** When a VASP confirms or denies ownership of a deposit address on Sahyog, the reply is recorded in BitTrail (by the officer, or pushed by Sahyog) and the system learns from it (the labels flywheel).
 - **US-11** As an analyst, I see a dashboard: cases, value traced, top VASPs, open requests, alerts.
 
 ## 6. Functional requirements
@@ -103,7 +103,7 @@
 3. A mixer branch is shown flagged and stopped.
 4. A second case sharing the deposit address shows a "Linked to Case #…" banner.
 5. The PDF downloads; its manifest hash matches the hash shown.
-6. Notice generated → appears in the mock VASP inbox → VASP confirms → label becomes "verified" and confidence rises.
+6. Notice generated → sent via mock Sahyog → VASP confirms on Sahyog, reply recorded in BitTrail → label becomes "verified" and confidence rises.
 7. A watch-list alert fires (simulated or real) for movement on the path.
 
 ## 9. Assumptions

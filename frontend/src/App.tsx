@@ -7,15 +7,14 @@ import Cases from './pages/Cases'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import NewCase from './pages/NewCase'
+import NotFound from './pages/NotFound'
 import Requests from './pages/Requests'
-import VaspInbox from './pages/VaspInbox'
 import { AuthProvider, useAuth } from './store/auth'
 
-function Guard({ children, vasp = false }: { children: ReactNode; vasp?: boolean }) {
+function Guard({ children }: { children: ReactNode }) {
   const { me, loading } = useAuth()
   if (loading) return <div className="p-10 text-muted">Loading…</div>
   if (!me) return <Navigate to="/login" replace />
-  if (vasp !== (me.role === 'vasp')) return <Navigate to={me.role === 'vasp' ? '/vasp' : '/'} replace />
   return <>{children}</>
 }
 
@@ -32,9 +31,8 @@ export default function App() {
             <Route path="/cases/:id" element={<Guard><CaseDetail /></Guard>} />
             <Route path="/requests" element={<Guard><Requests /></Guard>} />
             <Route path="/alerts" element={<Guard><Alerts /></Guard>} />
-            <Route path="/vasp" element={<Guard vasp><VaspInbox /></Guard>} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

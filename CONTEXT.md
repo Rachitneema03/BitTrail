@@ -30,7 +30,7 @@
 3. **Classify** each address: VASP hot / deposit wallet, exchange cluster (inferred), mixer, bridge, sanctioned, off-ramp, unknown service, intermediary.
 4. **Score and rank** candidate VASPs: `rank = value_share × confidence × actionability`, with a factor-by-factor breakdown, "why A not B" and what-if scenarios.
 5. **Risk + typologies:** six-axis risk profile and rule-based laundering patterns (splitting, consolidation, rapid movement, layering, repeated forwarding, network switching, mixer, sanctions).
-6. **Act:** hash-sealed evidence PDF (timeline, score calculation, patterns, integrity) + drafted Section 94 BNSS notice (optionally consolidated across linked cases) → mock Sahyog → VASP inbox.
+6. **Act:** hash-sealed evidence PDF (timeline, score calculation, patterns, integrity) + drafted Section 94 BNSS notice (optionally consolidated across linked cases) → mock Sahyog. VASPs reply on Sahyog (not in BitTrail); the reply is recorded by the officer or pushed by the mock Sahyog webhook.
 7. **Investigation memory:** cases linked by shared addresses, a history factor in scoring, and a labels flywheel (a VASP confirmation becomes a verified label and re-scores open cases).
 8. **Monitoring:** watch-list on suspect, deposit and end-point wallets; configurable alerts; timeline + investigation replay.
 9. **Sarvam AI (optional):** case summary (English/Hindi), "Ask this case", Hindi notice translation — from computed evidence only.
@@ -125,8 +125,8 @@ bittrail/                  (repo root = this folder)
 - **`Transfer`** — normalised output of every chain adapter: `chain, tx_hash, log_index, block, timestamp, from, to, asset, contract, amount_raw, decimals, amount, amount_usd`.
 - **`ChainAdapter`** — `detect(address)`, `get_transfers(address, direction, since, until, limit)`, `get_address_stats(address)`, `get_tags(address)`.
 - **Address → chain:** `T…` (34 chars, base58) → tron · `0x` + 40 hex → EVM · `bc1` / `1` / `3` → bitcoin.
-- **API base:** `/api/v1` — cases, trace jobs, graph, candidates, links, reports, requests, VASP inbox and replies, alerts, watch, stats, sahyog webhook stub, auth, health. Full list: [architecture.md §6](docs/architecture.md).
-- **Roles:** `io` (investigating officer), `analyst` (I4C), `vasp` (simulated exchange officer).
+- **API base:** `/api/v1` — cases, trace jobs, graph, candidates, links, reports, requests and recorded VASP replies, alerts, watch, stats, sahyog webhook stubs (case intake, VASP reply), auth, health. Full list: [architecture.md §6](docs/architecture.md).
+- **Roles:** `io` (investigating officer), `analyst` (I4C). VASPs are not users: the VASP side is Sahyog's work.
 
 ## Coding conventions
 
@@ -161,7 +161,7 @@ bittrail/                  (repo root = this folder)
 
 ## Demo script (what everything is built toward)
 
-1. Create a case with a real Tron wallet → 2. the graph animates (thickness = value; mixer flagged) → 3. ranked VASP with confidence and reasons → 4. "funds still at deposit" alert → 5. a second case auto-links via a shared deposit address → 6. generate the Section 94 BNSS notice + hashed evidence PDF → send via mock Sahyog → 7. the VASP confirms → the label becomes verified → confidence rises.
+1. Create a case with a real Tron wallet → 2. the graph animates (thickness = value; mixer flagged) → 3. ranked VASP with confidence and reasons → 4. "funds still at deposit" alert → 5. a second case auto-links via a shared deposit address → 6. generate the Section 94 BNSS notice + hashed evidence PDF → send via mock Sahyog → 7. the VASP confirms via Sahyog (reply recorded in BitTrail) → the label becomes verified → confidence rises.
 
 ## Status
 

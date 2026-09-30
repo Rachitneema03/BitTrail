@@ -43,6 +43,60 @@ export function WhatIfList({ c }: { c: Candidate }) {
   )
 }
 
+/** Side-by-side matrix of every candidate VASP: rank inputs, factor points and evidence. Best value per row is highlighted. */
+export function CompareAll({ cands }: { cands: Candidate[] }) {
+  const pts = cands.map((c) => new Map((c.explain?.contributions ?? []).map((p) => [p.factor, p])))
+  const factors = [...new Map(cands.flatMap((c) => c.explain?.contributions ?? []).map((p) => [p.factor, p.label])).entries()]
+  const top = cands[0]?.rank_score || 1
+  type Row = { label: string; vals: number[]; fmt: (v: number) => string; best?: 'max' | 'min'; hint?: string }
+  const rows: Row[] = [
+    { label: 'Rank score', vals: cands.map((c) => c.rank_score), fmt: (v) => v.toFixed(3), best: 'max', hint: 'value × confidence × actionability' },
+    { label: 'Value reached', vals: cands.map((c) => c.value_share), fmt: (v) => `${Math.round(v * 100)}%`, best: 'max' },
+    { label: 'Value (USD)', vals: cands.map((c) => c.value_usd ?? 0), fmt: (v) => '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 }), best: 'max' },
+    { label: 'Confidence', vals: cands.map((c) => c.confidence), fmt: (v) => v.toFixed(2), best: 'max' },
+    { label: 'Actionability', vals: cands.map((c) => c.actionability), fmt: (v) => v.toFixed(2), best: 'max', hint: 'FIU-IND / Sahyog reachability' },
+    { label: 'Hops from suspect', vals: cands.map((c) => c.hops), fmt: (v) => String(v), best: 'min' },
+    ...factors.map(([k, label]) => ({ label: `  ${label}`, vals: pts.map((m) => m.get(k)?.points ?? 0), fmt: (v: number) => `+${v.toFixed(1)}`, best: 'max' as const })),
+  ]
+  const bestOf = (r: Row) => (r.best === 'min' ? Math.min(...r.vals) : Math.max(...r.vals))
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        {cands.map((c, i) => (
+          <div key={c.id} className="flex items-center gap-3 text-sm">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-navy text-[10px] font-bold text-white">{i + 1}</span>
+            <span className="w-28 shrink-0 truncate font-semibold">{c.vasp_name}</span>
+            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-line"><div className={cx('h-full rounded-full', i === 0 ? 'bg-teal' : 'bg-blue/60')} style={{ width: `${(c.rank_score / top) * 100}%` }} /></div>
+            <span className="w-12 text-right text-xs tabular-nums text-muted">{c.rank_score.toFixed(3)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-sm">
+          <thead className="text-left text-xs text-muted">
+            <tr><th className="py-1.5 pr-3">Factor</th>{cands.map((c, i) => <th key={c.id} className="px-2 py-1.5 text-right"><div className="text-ink">{i + 1}. {c.vasp_name}</div>
+              <div className="font-normal">{c.address_kind.replace('_', ' ')}{c.chain !== 'tron' ? ` · ${c.chain}` : ''}</div></th>)}</tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((r) => {
+              const b = bestOf(r)
+              const tie = r.vals.every((v) => v === b)
+              return (
+                <tr key={r.label} className={r.label.startsWith('  ') ? 'text-xs' : ''}>
+                  <td className={cx('py-1.5 pr-3 whitespace-pre', r.label.startsWith('  ') && 'text-muted')} title={r.hint}>{r.label}{r.hint && <span className="text-muted"> ⓘ</span>}</td>
+                  {r.vals.map((v, i) => <td key={i} className={cx('px-2 py-1.5 text-right tabular-nums', !tie && v === b && 'font-bold text-teal')}>{r.fmt(v)}</td>)}
+                </tr>
+              )
+            })}
+            <tr className="text-xs"><td className="py-1.5 pr-3">Funds status</td>{cands.map((c) => <td key={c.id} className={cx('px-2 py-1.5 text-right', c.funds_status === 'at_deposit' && 'font-bold text-orange-ink')}>{c.funds_status.replace('_', ' ')}</td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted">Factor rows are confidence points (signal × weight); they add up to confidence × 100. Highlighted = strongest value in that row. Ranking comes only from labels, rules and scores; no LLM is involved.</p>
+    </div>
+  )
+}
+
 /** "Why A, not B?" — factor-by-factor gap, computed from both candidates' stored breakdowns. */
 export function Compare({ a, b }: { a: Candidate; b: Candidate }) {
   const pa = new Map<string, Contribution>((a.explain?.contributions ?? []).map((p) => [p.factor, p]))

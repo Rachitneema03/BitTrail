@@ -15,13 +15,25 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  useEffect(() => { api<DemoUsers>('/auth/demo-users').then(setDemo).catch(() => null) }, [])
+  const [demoFailed, setDemoFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  // retry with backoff: on a cold start / restart the API can briefly be unreachable
+  useEffect(() => {
+    let alive = true
+    let timer: ReturnType<typeof setTimeout>
+    const tryLoad = (n: number) => api<DemoUsers>('/auth/demo-users')
+      .then((d) => { if (alive) { setDemo(d); setDemoFailed(false) } })
+      .catch(() => { if (!alive) return; if (n < 5) timer = setTimeout(() => tryLoad(n + 1), 1000 * 2 ** n); else setDemoFailed(true) })
+    setDemoFailed(false)
+    tryLoad(0)
+    return () => { alive = false; clearTimeout(timer) }
+  }, [attempt])
 
   const go = async (e: string, p: string) => {
     setBusy(true); setErr('')
     try {
-      const u = await login(e, p)
-      nav(u.role === 'vasp' ? '/vasp' : '/')
+      await login(e, p)
+      nav('/')
     } catch (x) { setErr((x as Error).message) } finally { setBusy(false) }
   }
 
@@ -46,6 +58,14 @@ export default function Login() {
             {err && <div className="text-sm text-red">{err}</div>}
             <Button className="w-full py-2.5" disabled={busy}>Sign in</Button>
           </form>
+          {!demo && (
+            <Card className="mt-8 p-4 text-sm">
+              <div className="mb-1 font-semibold">One-click demo roles</div>
+              {demoFailed
+                ? <div className="text-muted">The server isn't answering yet (it may be starting up). <button className="font-semibold text-blue hover:underline" onClick={() => setAttempt((a) => a + 1)}>Try again</button></div>
+                : <div className="animate-pulse text-muted">Connecting to server…</div>}
+            </Card>
+          )}
           {demo && (
             <Card className="mt-8 p-4">
               <div className="mb-3 text-sm font-semibold">One-click demo roles</div>
@@ -54,7 +74,7 @@ export default function Login() {
                   <button key={u.email} disabled={busy} onClick={() => go(u.email, demo.password)}
                     className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper">
                     <span className="font-medium">{u.name}</span>
-                    <span className="text-xs text-muted">{u.role === 'io' ? 'Officer' : u.role === 'analyst' ? 'I4C' : 'VASP'}</span>
+                    <span className="text-xs text-muted">{u.role === 'io' ? 'Officer' : 'I4C'}</span>
                   </button>
                 ))}
               </div>

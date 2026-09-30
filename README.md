@@ -41,7 +41,8 @@ Single-server mode: `cd frontend && npm run build`, then only run uvicorn. FastA
 |---|---|
 | `io@bittrail.demo` | Investigating officer |
 | `analyst@bittrail.demo` | I4C analyst |
-| `coindcx@bittrail.demo` / `binance@bittrail.demo` | Simulated VASP nodal officer (request inbox) |
+
+VASPs are not BitTrail users: they receive notices and reply on Sahyog.
 
 ### Demo flow (about 3 minutes)
 1. Dashboard → **Case #1**: the graph shows suspect → intermediary → **CoinDCX deposit address** → CoinDCX hot wallet (live Tron data).
@@ -49,7 +50,7 @@ Single-server mode: `cd frontend && npm run build`, then only run uvicorn. FastA
 3. **Cross-case link** banner: Case #2 (Delhi) reaches the same deposit address.
 4. **Generate evidence report** → Open PDF (manifest hash on every page, BSA §63 certificate template).
 5. **Draft Section 94 BNSS notice** → Send via Sahyog (mock).
-6. Sign in as **CoinDCX** → Confirm → the label becomes *verified* and both cases' confidence rises (labels flywheel).
+6. **Sahyog requests** → **Record VASP reply** → Confirmed (CoinDCX's reply received via Sahyog) → the label becomes *verified* and both cases' confidence rises (labels flywheel). Sahyog can also push the reply: `POST /api/v1/sahyog/reply` (mock webhook, matched by Sahyog ref).
 
 ## Deploy (Railway + Supabase)
 
@@ -75,7 +76,7 @@ Alternatives: `docker compose up --build` (app + local Postgres), or Render / Fl
 | `python scripts/eval_hide_and_seek.py 5` | Accuracy test on live Tron data (label ablation) → `docs/eval.md` |
 
 ## Known limits (prototype)
-- Sahyog, CFCFRMS and the VASP inbox are **mocked**; FIU-IND / Sahyog status in `backend/data/vasp_registry.json` is hand-curated and must be verified.
+- Sahyog (sending notices, VASP replies) and CFCFRMS are **mocked**; FIU-IND / Sahyog status in `backend/data/vasp_registry.json` is hand-curated and must be verified.
 - Bitcoin uses a simple largest-output model (no change detection). Solana on the public RPC is slow (rate limits); use a Helius RPC URL. BNB Chain needs a paid Etherscan tier or `BSC_API_BASE`. Cross-chain continuation covers bridges the LI.FI status API tracks, starting from a small curated list of bridge contracts.
 - Label coverage is public sources only; unknown VASPs appear as "service-like" wallets for manual review.
 - Demo case metadata is fictional; wallet addresses are real public on-chain data.

@@ -10,7 +10,6 @@ Status: Draft v0.1 · MVP prototype. See [prd.md](prd.md) for scope, [schema.md]
 flowchart LR
   IO[Investigating Officer] --> UI[BitTrail Web App]
   AN[I4C Analyst] --> UI
-  VO[VASP Officer - simulated] --> UI
   UI <--> API[BitTrail API - FastAPI]
   API <--> DB[(PostgreSQL)]
   API --> TRON[TronGrid / Tronscan]
@@ -18,6 +17,7 @@ flowchart LR
   API --> BTC[mempool.space]
   API --> PX[Price API - daily]
   API -. mock .-> SAHYOG[Sahyog - mocked]
+  SAHYOG -. notices / replies .- VASP[VASPs]
   API -. future .-> SR[I4C Suspect Registry / Samanvaya]
 ```
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph Web[React app - Vercel]
     CasesUI[Cases] --- GraphUI[Trace graph + Sankey]
     GraphUI --- RankUI[Ranked VASPs]
-    RankUI --- ReqUI[Requests / VASP inbox]
+    RankUI --- ReqUI[Sahyog requests + recorded replies]
     ReqUI --- DashUI[Dashboard + Alerts]
   end
   subgraph Api[FastAPI - Railway]
@@ -191,8 +191,9 @@ Every 5 minutes: for each active `watch_items` row, fetch outgoing transfers sin
 | GET | `/api/v1/reports/{id}.pdf` · `/api/v1/reports/{id}/manifest` | PDF · manifest with stored and recomputed hash |
 | POST | `/api/v1/cases/{id}/requests` | Draft a notice for a candidate VASP |
 | POST | `/api/v1/requests/{id}/send` | Mock "send via Sahyog" |
-| GET | `/api/v1/requests` | IO / analyst: all requests · VASP role: only its own inbox |
-| POST | `/api/v1/requests/{id}/reply` | VASP confirms / denies → flywheel |
+| GET | `/api/v1/requests` | IO / analyst: all requests |
+| POST | `/api/v1/requests/{id}/reply` | Officer records the VASP's reply received on Sahyog (confirmed / denied) → flywheel |
+| POST | `/api/v1/sahyog/reply` | **Integration stub:** Sahyog pushes a VASP reply, matched by `sahyog_ref` (analyst role) → flywheel |
 | GET | `/api/v1/alerts` · POST `/api/v1/alerts/{id}/read` | Alert feed |
 | GET | `/api/v1/cases/{id}/watch` · POST `/api/v1/watch/{id}/check` | Watch items / force a check |
 | GET | `/api/v1/stats` · `/api/v1/vasps` | Dashboard numbers · VASP registry |
@@ -201,7 +202,7 @@ Every 5 minutes: for each active `watch_items` row, fetch outgoing transfers sin
 
 Candidates, links and alerts are returned inside `GET /api/v1/cases/{id}` (one round-trip for the workspace).
 
-Auth (MVP): `POST /api/v1/auth/login` with seeded users per role → JWT; `GET /api/v1/auth/demo-users` powers the one-click demo login; roles `io`, `analyst`, `vasp`.
+Auth (MVP): `POST /api/v1/auth/login` with seeded users per role → JWT; `GET /api/v1/auth/demo-users` powers the one-click demo login; roles `io`, `analyst`. VASPs are not BitTrail users; they act on Sahyog.
 
 ## 7. Frontend (routes)
 
@@ -212,8 +213,7 @@ Auth (MVP): `POST /api/v1/auth/login` with seeded users per role → JWT; `GET /
 | `/cases/new` | Case intake form |
 | `/cases` | Case list with nearest VASP and link counts |
 | `/cases/:id` | Case workspace: **graph** (Cytoscape) with node inspector · Sankey tab · transactions tab · **ranked VASPs** panel · linked-case and freeze-window banners · reports (PDF + hash) · notice drafting |
-| `/requests` | IO: drafted and sent notices |
-| `/vasp` | VASP officer inbox → confirm / deny |
+| `/requests` | IO: drafted and sent notices · record the VASP's Sahyog reply (confirmed / denied) |
 | `/alerts` | Alert feed |
 
 Graph legend: orange = suspect · grey = intermediary · teal = VASP · navy = hot wallet · red dashed = mixer · purple = bridge. Edge width ∝ value_share.
@@ -264,7 +264,7 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 
 ## 11. Security and compliance (prototype level)
 
-- Role-based access on routes; the VASP role sees only its own inbox.
+- Role-based access on routes (`io`, `analyst`).
 - **Supabase lockdown:** on startup every table gets Row Level Security enabled with no policies (`db.lock_down_public_api`). That blocks Supabase's public REST API (publishable / anon key) from all BitTrail data. The backend connects as `postgres`, which bypasses RLS, so the app is unaffected.
 - Every create, update, send or reply writes to `audit_log` (append-only; no updates or deletes via the API).
 - No real personal data. Case metadata in demos is fictional; wallet addresses are public on-chain data.

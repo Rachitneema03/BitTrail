@@ -103,14 +103,15 @@ def list_cases(db: Session = Depends(get_db), user: User = Depends(require("io",
     cases = db.execute(select(Case).order_by(Case.case_no.desc())).scalars().all()
     out = []
     for c in cases:
-        top = db.execute(select(Candidate).where(Candidate.case_id == c.id, Candidate.role == "off_ramp",
-                                                 Candidate.job_id == select(TraceJob.id).where(TraceJob.case_id == c.id, TraceJob.status == "done")
-                                                 .order_by(TraceJob.created_at.desc()).limit(1).scalar_subquery())
-                         .order_by(Candidate.rank_score.desc()).limit(1)).scalar()
+        offs = db.execute(select(Candidate).where(Candidate.case_id == c.id, Candidate.role == "off_ramp",
+                                                  Candidate.job_id == select(TraceJob.id).where(TraceJob.case_id == c.id, TraceJob.status == "done")
+                                                  .order_by(TraceJob.created_at.desc()).limit(1).scalar_subquery())
+                          .order_by(Candidate.rank_score.desc())).scalars().all()
         wallets = db.execute(select(CaseWallet).where(CaseWallet.case_id == c.id)).scalars().all()
         links = db.execute(select(func.count(CaseLink.id)).where((CaseLink.case_a == c.id) | (CaseLink.case_b == c.id))).scalar()
         d = case_dict(c, wallets)
-        d["top_vasp"] = cand_dict(top) if top else None
+        d["top_vasp"] = cand_dict(offs[0]) if offs else None
+        d["vasps"] = list(dict.fromkeys(x.vasp_name for x in offs))
         d["links"] = links
         out.append(d)
     return out

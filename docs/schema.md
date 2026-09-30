@@ -19,7 +19,7 @@ Conventions: `id` = UUID primary key · timestamps are `timestamptz` in UTC · `
 | `request_type` | `disclosure`, `freeze`, `disclosure_and_freeze` |
 | `request_status` | `draft`, `sent`, `acknowledged`, `confirmed`, `denied` |
 | `alert_severity` | `info`, `medium`, `high` |
-| `user_role` | `io`, `analyst`, `vasp` |
+| `user_role` | `io`, `analyst` |
 
 ## 2. Entity relationship overview
 
@@ -103,7 +103,7 @@ erDiagram
 | name | text | |
 | email | text unique | |
 | role | user_role | |
-| vasp_id | uuid FK → vasps null | set for the `vasp` role |
+| vasp_id | uuid FK → vasps null | unused (the `vasp` role was removed; VASPs act on Sahyog) |
 | password_hash | text | demo users are seeded |
 | created_at | timestamptz | |
 

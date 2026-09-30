@@ -14,15 +14,14 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .db import get_db
-from .models import User, Vasp
+from .models import User
 
 bearer = HTTPBearer(auto_error=False)
 DEMO_PASSWORD = "bittrail-demo"
+# VASPs are not BitTrail users: they receive notices and reply through Sahyog (mocked via /sahyog/reply).
 DEMO_USERS = [
-    ("Insp. A. Sharma (demo IO)", "io@bittrail.demo", "io", None),
-    ("I4C Analyst (demo)", "analyst@bittrail.demo", "analyst", None),
-    ("Binance Nodal Officer (simulated)", "binance@bittrail.demo", "vasp", "Binance"),
-    ("CoinDCX Nodal Officer (simulated)", "coindcx@bittrail.demo", "vasp", "CoinDCX"),
+    ("Insp. A. Sharma (demo IO)", "io@bittrail.demo", "io"),
+    ("I4C Analyst (demo)", "analyst@bittrail.demo", "analyst"),
 ]
 
 
@@ -43,11 +42,10 @@ def make_token(user: User) -> str:
 
 
 def seed_users(db: Session) -> None:
-    for name, email, role, vasp in DEMO_USERS:
+    for name, email, role in DEMO_USERS:
         if db.execute(select(User).where(User.email == email)).scalar():
             continue
-        vasp_id = db.execute(select(Vasp.id).where(Vasp.name == vasp)).scalar() if vasp else None
-        db.add(User(name=name, email=email, role=role, vasp_id=vasp_id, password_hash=hash_password(DEMO_PASSWORD)))
+        db.add(User(name=name, email=email, role=role, password_hash=hash_password(DEMO_PASSWORD)))
     db.commit()
 
 
