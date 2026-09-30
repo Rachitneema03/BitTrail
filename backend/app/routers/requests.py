@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..audit import audit
-from ..auth import current_user, require
+from ..auth import require
 from ..config import heuristics
 from ..db import get_db
 from ..engine.explain import contributions, what_if
@@ -96,29 +96,43 @@ def send(req_id: str, db: Session = Depends(get_db), user: User = Depends(requir
 
 
 @router.get("/requests")
-def list_requests(db: Session = Depends(get_db), user: User = Depends(current_user)):
-    q = select(Request).order_by(Request.created_at.desc())
-    if user.role == "vasp":
-        q = q.where(Request.vasp_id == user.vasp_id, Request.status != "draft")
-    return [req_dict(r, db) for r in db.execute(q).scalars()]
+def list_requests(db: Session = Depends(get_db), user: User = Depends(require("io", "analyst"))):
+    return [req_dict(r, db) for r in db.execute(select(Request).order_by(Request.created_at.desc())).scalars()]
 
 
-@router.post("/requests/{req_id}/reply")
-def reply(req_id: str, data: ReplyIn, db: Session = Depends(get_db), user: User = Depends(require("vasp", "analyst"))):
-    r = db.get(Request, req_id)
+def record_reply(db: Session, r: Request | None, data: ReplyIn, user: User, via: str) -> dict:
+    """VASPs answer on Sahyog, not in BitTrail. Their reply is recorded here and feeds the labels flywheel."""
     if not r or r.status not in ("sent", "acknowledged"):
         raise HTTPException(409, "Request is not awaiting a reply")
-    if user.role == "vasp" and user.vasp_id != r.vasp_id:
-        raise HTTPException(403, "Not your institution's request")
     if data.outcome not in ("confirmed", "denied"):
         raise HTTPException(422, "outcome must be confirmed or denied")
     db.add(VaspReply(request_id=r.id, outcome=data.outcome, account_ref=data.account_ref,
                      frozen_amount_usd=data.frozen_amount_usd, note=data.note, replied_by=user.id))
     r.status = data.outcome
     updated = flywheel(db, r, data.outcome)
-    audit(db, f"reply.{data.outcome}", "request", r.id, user.id, {"vasp": r.vasp_name, "rescored_candidates": updated})
+    audit(db, f"reply.{data.outcome}", "request", r.id, user.id,
+          {"vasp": r.vasp_name, "sahyog_ref": r.sahyog_ref, "via": via, "rescored_candidates": updated})
     db.commit()
     return {**req_dict(r, db), "rescored_candidates": updated}
+
+
+@router.post("/requests/{req_id}/reply")
+def reply(req_id: str, data: ReplyIn, db: Session = Depends(get_db), user: User = Depends(require("io", "analyst"))):
+    """Officer records the VASP's reply received through Sahyog."""
+    return record_reply(db, db.get(Request, req_id), data, user, "manual")
+
+
+class SahyogReplyIn(ReplyIn):
+    sahyog_ref: str
+
+
+@router.post("/sahyog/reply")
+def sahyog_reply(data: SahyogReplyIn, db: Session = Depends(get_db), user: User = Depends(require("analyst"))):
+    """Integration stub: Sahyog pushes a VASP's reply, matched by the Sahyog reference number."""
+    r = db.execute(select(Request).where(Request.sahyog_ref == data.sahyog_ref)).scalar()
+    if not r:
+        raise HTTPException(404, "No request with that Sahyog reference")
+    return record_reply(db, r, data, user, "sahyog_webhook")
 
 
 def flywheel(db: Session, r: Request, outcome: str) -> int:

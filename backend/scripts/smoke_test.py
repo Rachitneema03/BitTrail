@@ -1,7 +1,7 @@
 """End-to-end API smoke test of the demo flow.
 
   python scripts/smoke_test.py http://localhost:8000
-Waits for demo traces, then: graph -> report (hash check) -> notice -> send -> VASP confirms -> flywheel -> stats.
+Waits for demo traces, then: graph -> report (hash check) -> notice -> send -> VASP confirms via Sahyog -> flywheel -> stats.
 """
 import hashlib
 import json
@@ -65,15 +65,15 @@ def main() -> None:
     sent = c.post(f"{BASE}/requests/{req['id']}/send", headers=io).json()
     ok(f"notice to {sent['vasp_name']} sent via mock Sahyog: {sent['sahyog_ref']}")
 
-    email = {"CoinDCX": "coindcx@bittrail.demo", "Binance": "binance@bittrail.demo"}.get(sent["vasp_name"])
-    vh = login(c, email) if email else login(c, "analyst@bittrail.demo")
-    inbox = c.get(f"{BASE}/requests", headers=vh).json()
-    assert any(r["id"] == req["id"] for r in inbox), "request not in VASP inbox"
+    # the VASP replies on Sahyog; Sahyog pushes the reply back (mock webhook, matched by Sahyog ref)
+    ah = login(c, "analyst@bittrail.demo")
     before = cand["confidence"]
-    rep2 = c.post(f"{BASE}/requests/{req['id']}/reply", headers=vh,
-                  json={"outcome": "confirmed", "account_ref": "ACC-DEMO-7781", "frozen_amount_usd": 1000}).json()
+    rep2 = c.post(f"{BASE}/sahyog/reply", headers=ah,
+                  json={"sahyog_ref": sent["sahyog_ref"], "outcome": "confirmed", "account_ref": "ACC-DEMO-7781",
+                        "frozen_amount_usd": 1000}).json()
+    assert rep2["status"] == "confirmed", rep2
     after = c.get(f"{BASE}/cases/{case['id']}", headers=io).json()["candidates"][0]["confidence"]
-    ok(f"VASP confirmed; flywheel rescored {rep2['rescored_candidates']} candidate(s); confidence {before} -> {after}")
+    ok(f"VASP confirmed via Sahyog; flywheel rescored {rep2['rescored_candidates']} candidate(s); confidence {before} -> {after}")
 
     s = c.get(f"{BASE}/stats", headers=io).json()
     ok(f"stats: {s['cases']} cases, {s['attributed']} attributed, ${s['traced_usd']:,.0f} traced, "

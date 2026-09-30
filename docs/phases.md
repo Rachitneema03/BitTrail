@@ -71,7 +71,7 @@ Each phase ends with an **exit check**. Don't start the next phase's "nice to ha
 | Owner | Task |
 |---|---|
 | E | Canonical manifest + SHA-256; WeasyPrint PDF (hash on every page, BSA §63 certificate template); notice templates (Section 94 BNSS disclosure, freeze); mock Sahyog send + reference number |
-| D | Report preview + download; "Generate request" flow; VASP inbox screen (role `vasp`) |
+| D | Report preview + download; "Generate request" flow; record the VASP's Sahyog reply (the `vasp` role and inbox were later removed: that side is Sahyog's) |
 | B | Cross-case correlator: `address_case_index`, `case_links`, banner API |
 | C | Labels flywheel: VASP confirm → verified label → re-score open cases |
 | A | Harden adapters: retries, backoff, rate-limit handling |

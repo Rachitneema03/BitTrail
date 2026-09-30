@@ -55,11 +55,12 @@ def seed_demo_cases() -> list[str]:
     if not DEMO_CASES.exists():
         return []
     with SessionLocal() as db:
-        if db.execute(select(func.count(Case.id))).scalar():
-            return []
+        # add any demo case not yet present (matched by FIR), so new demo cases reach existing databases too
+        have = set(db.execute(select(Case.fir_no).where(Case.is_demo.is_(True))).scalars())
         ids = []
         for c in json.loads(DEMO_CASES.read_text(encoding="utf-8"))["cases"]:
-            ids.append(create_case(db, CaseIn(**c), None, is_demo=True).id)
+            if c["fir_no"] not in have:
+                ids.append(create_case(db, CaseIn(**c), None, is_demo=True).id)
         return ids
 
 

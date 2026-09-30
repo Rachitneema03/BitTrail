@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..auth import DEMO_PASSWORD, current_user, make_token, require, verify_password
+from ..auth import DEMO_PASSWORD, DEMO_USERS, current_user, make_token, require, verify_password
 from ..config import settings
 from ..db import get_db
 from ..labels.index import label_index
@@ -46,9 +46,11 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
 
 
 @router.get("/auth/demo-users")
-def demo_users(db: Session = Depends(get_db)):
+def demo_users():
+    # Served from the seed constant, not the DB: the login page must list demo roles even while the
+    # connection pool is busy (startup traces, watch poller) or the database is briefly unreachable.
     return {"password": DEMO_PASSWORD,
-            "users": [{"email": u.email, "name": u.name, "role": u.role} for u in db.execute(select(User)).scalars()]}
+            "users": [{"email": email, "name": name, "role": role} for name, email, role in DEMO_USERS]}
 
 
 def me_dict(u: User, db: Session) -> dict:

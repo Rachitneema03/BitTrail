@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, openPdf, post } from '../api/client'
+import { ApiError, api, openPdf, post } from '../api/client'
 import type { Candidate, CaseDetail as CaseT, CaseLinkT, Graph, Job, ReqT, TimelineEvent } from '../api/types'
 import AiPanel from '../components/AiPanel'
-import { Compare, ScoreBreakdown, WhatIfList } from '../components/Explain'
+import { Compare, CompareAll, ScoreBreakdown, WhatIfList } from '../components/Explain'
 import TraceGraph, { KIND_STYLE } from '../components/graph/TraceGraph'
 import RiskPanel, { RiskBadge } from '../components/RiskPanel'
 import SankeyChart from '../components/sankey/SankeyChart'
 import Timeline from '../components/Timeline'
 import { Badge, Button, Card, ConfBar, Empty, IST, StatusBadge, addrUrl, cx, pct, short, txUrl, usd } from '../components/ui'
+import NotFound from './NotFound'
 
 interface ReportRow { id: string; sha256: string; created_at: string }
 type Tab = 'graph' | 'sankey' | 'evidence' | 'timeline' | 'risk'
@@ -33,13 +34,20 @@ export default function CaseDetail() {
   const [draft, setDraft] = useState<ReqT | null>(null)
   const [noticeLang, setNoticeLang] = useState<'en' | 'hi-IN'>('en')
   const [compare, setCompare] = useState<[Candidate, Candidate] | null>(null)
+  const [compareAll, setCompareAll] = useState(false)
   const [step, setStep] = useState<number | null>(null)
   const [playing, setPlaying] = useState(false)
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
 
+  const [missing, setMissing] = useState(false)
+
   const load = useCallback(async () => {
-    const d = await api<CaseT>(`/cases/${id}`)
+    let d: CaseT
+    try { d = await api<CaseT>(`/cases/${id}`) } catch (x) {
+      if (x instanceof ApiError && (x.status === 404 || x.status === 422)) { setMissing(true); return }
+      throw x
+    }
     setC(d); setJob(d.job)
     if (d.done_job) setGraph(await api<Graph>(`/cases/${id}/graph`))
     setReports(await api<ReportRow[]>(`/cases/${id}/reports`))
@@ -72,6 +80,7 @@ export default function CaseDetail() {
   const revealed = useMemo(() => (step === null ? null : new Set(ordered.slice(0, step + 1).map((e) => e.data.id))), [step, ordered])
 
   const nodes = useMemo(() => new Map(graph?.nodes.map((n) => [n.data.id, n.data]) ?? []), [graph])
+  if (missing) return <NotFound embedded what="case" />
   if (!c) return <Empty>Loading case…</Empty>
   const running = job && ['queued', 'running'].includes(job.status)
   const analysis = c.done_job?.analysis
@@ -207,6 +216,13 @@ export default function CaseDetail() {
 
         <div className="space-y-4 xl:col-span-2">
           <h2 className="text-lg font-semibold">Plausible VASPs <span className="text-sm font-normal text-muted">(ranked: value × confidence × actionability)</span></h2>
+          {off.length > 1 && (
+            <Card className="flex flex-wrap items-center justify-between gap-3 border-teal/30 bg-teal-tint p-4 text-sm">
+              <div><b>{new Set(off.map((x) => x.vasp_name)).size} VASPs</b> reached by this trail
+                <div className="text-xs text-muted">{off.map((x) => x.vasp_name).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</div></div>
+              <Button variant="teal" className="px-3 py-1.5 text-xs" onClick={() => setCompareAll(true)}>Compare all side by side</Button>
+            </Card>
+          )}
           {off.length === 0 && !running && <Empty>No VASP reached within trace limits. Watch-list armed on end-point wallets.</Empty>}
           {off.map((x, i) => <CandidateCard key={x.id} c={x} rank={i + 1} busy={busy === x.id} onDraft={draftReq} links={c.links.length}
             others={c.candidates.filter((o) => o.id !== x.id)} onCompare={(o) => setCompare([x, o])} />)}
@@ -246,6 +262,19 @@ export default function CaseDetail() {
               <div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-2xl font-bold">Why {compare[0].vasp_name}, not {compare[1].vasp_name}?</h2>
                 <button className="text-muted hover:text-ink" onClick={() => setCompare(null)}>✕</button></div>
               <Compare a={compare[0]} b={compare[1]} />
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {compareAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 p-4" onClick={() => setCompareAll(false)}>
+          <Card className="max-h-[90vh] w-full max-w-4xl overflow-auto p-6">
+            <div onClick={(e) => e.stopPropagation()}>
+              <div className="mb-1 flex items-center justify-between"><h2 className="font-serif text-2xl font-bold">Comparing {off.length} candidate VASPs</h2>
+                <button className="text-muted hover:text-ink" onClick={() => setCompareAll(false)} aria-label="Close">✕</button></div>
+              <div className="mb-4 text-sm text-muted">Ranked by value reached × confidence × actionability. Address a notice to each VASP that holds a meaningful share.</div>
+              <CompareAll cands={off} />
             </div>
           </Card>
         </div>

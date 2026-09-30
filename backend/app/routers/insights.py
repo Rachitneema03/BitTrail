@@ -70,7 +70,7 @@ def update_alert_rules(data: dict, db: Session = Depends(get_db), user: User = D
 
 
 @router.get("/ai/status")
-def ai_status(user: User = Depends(require("io", "analyst", "vasp"))):
+def ai_status(user: User = Depends(require("io", "analyst"))):
     return llm.status()
 
 
@@ -120,7 +120,7 @@ async def ask(case_id: str, data: AskIn, db: Session = Depends(get_db), user: Us
 
 @router.post("/requests/{req_id}/translate")
 async def translate_request(req_id: str, data: TranslateIn, db: Session = Depends(get_db),
-                            user: User = Depends(require("io", "analyst", "vasp"))):
+                            user: User = Depends(require("io", "analyst"))):
     r = db.get(Request, req_id)
     if not r:
         raise HTTPException(404, "Request not found")

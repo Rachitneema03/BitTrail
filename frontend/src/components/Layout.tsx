@@ -26,10 +26,8 @@ export default function Layout() {
   const [open, setOpen] = useState(false)
   useEffect(() => { api<Health>('/health').then(setHealth).catch(() => null) }, [])
 
-  const links = me?.role === 'vasp'
-    ? [{ to: '/vasp', label: 'Request inbox' }]
-    : [{ to: '/', label: 'Dashboard' }, { to: '/cases', label: 'Cases' }, { to: '/cases/new', label: 'New case' },
-       { to: '/requests', label: 'Sahyog requests' }, { to: '/alerts', label: 'Alerts' }]
+  const links = [{ to: '/', label: 'Dashboard' }, { to: '/cases', label: 'Cases' }, { to: '/cases/new', label: 'New case' },
+    { to: '/requests', label: 'Sahyog requests' }, { to: '/alerts', label: 'Alerts' }]
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
@@ -48,7 +46,7 @@ export default function Layout() {
           ))}
           <div className="mt-6 border-t border-white/10 px-3 pt-4 text-xs text-[#C9D2E3] md:absolute md:bottom-4 md:left-3 md:right-3">
             <div className="font-semibold text-white">{me?.name}</div>
-            <div className="mt-0.5">{me?.role === 'vasp' ? `VASP · ${me.vasp_name}` : me?.role === 'io' ? 'Investigating officer' : 'I4C analyst'}</div>
+            <div className="mt-0.5">{me?.role === 'io' ? 'Investigating officer' : 'I4C analyst'}</div>
             {health && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {Object.entries(health.chains).map(([c, on]) => (

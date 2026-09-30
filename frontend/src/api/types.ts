@@ -1,4 +1,4 @@
-export type Role = 'io' | 'analyst' | 'vasp'
+export type Role = 'io' | 'analyst'
 
 export interface Me { id: string; name: string; email: string; role: Role; vasp_id: string | null; vasp_name: string | null }
 
@@ -40,7 +40,7 @@ export interface AlertT { id: string; case_id?: string; case_no?: number; type: 
 export interface CaseSummary {
   id: string; case_no: number; title: string | null; fir_no: string; ncrp_id: string | null; police_station: string | null
   state: string | null; fraud_type: string | null; fraud_time: string; amount_inr: number | null; status: string
-  is_demo: boolean; created_at: string; wallets: Wallet[]; top_vasp?: Candidate | null; links?: number; monitoring: boolean
+  is_demo: boolean; created_at: string; wallets: Wallet[]; top_vasp?: Candidate | null; vasps?: string[]; links?: number; monitoring: boolean
 }
 
 export interface CaseDetail extends Omit<CaseSummary, 'links' | 'top_vasp'> {
