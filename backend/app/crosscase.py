@@ -12,7 +12,7 @@ from .models import Alert, AddressCaseIndex, Case, CaseLink
 LINKABLE = {"suspect", "intermediary", "vasp_deposit", "offramp", "sanctioned"}
 
 
-def update_links(db: Session, case: Case, job_id: str, res: TraceResult) -> list[CaseLink]:
+def update_links(db: Session, case: Case, job_id: str, res: TraceResult, alert: bool = True) -> list[CaseLink]:
     db.execute(delete(AddressCaseIndex).where(AddressCaseIndex.case_id == case.id))
     rows = []
     for n in res.nodes.values():
@@ -40,9 +40,10 @@ def update_links(db: Session, case: Case, job_id: str, res: TraceResult) -> list
             db.add(link)
             links.append(link)
             new_by_peer.setdefault(o.case_id, []).append(link)
+    db.flush()  # later counts in this transaction must see the new links
 
     # one alert per linked case pair, listing every shared address
-    for peer_id, ls in new_by_peer.items():
+    for peer_id, ls in (new_by_peer.items() if alert else []):
         other = db.get(Case, peer_id)
         shared = ", ".join(describe(l) for l in sorted(ls, key=lambda l: l.kind != "vasp_deposit"))
         for c, peer in ((case, other), (other, case)):

@@ -36,6 +36,13 @@ Date: {{ date }}
 {% for tx in evidence %}
    - `{{ tx }}`
 {%- endfor %}
+{% if linked %}
+
+{{ "5" if freeze else "4" }}. **Consolidated request.** The same address / account is linked to the following cases, whose trails reach it independently. Please treat this as one request and share the account details once, referencing all of them:
+{% for l in linked %}
+   - FIR {{ l.fir_no }} ({{ l.state or "State n/a" }}), NCRP {{ l.ncrp_id or "-" }}, BitTrail Case #{{ l.case_no }}
+{%- endfor %}
+{% endif %}
 
 Please treat this notice as confidential and do not alert the account holder.
 
@@ -47,7 +54,8 @@ env = Environment(undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=Tru
 _tpl = env.from_string(TEMPLATE)
 
 
-def render_notice(*, req_type: str, case, candidate, officer: str, contact: str, suspect: str, sha: str | None) -> tuple[str, str]:
+def render_notice(*, req_type: str, case, candidate, officer: str, contact: str, suspect: str, sha: str | None,
+                  linked: list | None = None) -> tuple[str, str]:
     freeze = req_type in ("freeze", "disclosure_and_freeze")
     basis = "SECTION 94, BHARATIYA NAGARIK SURAKSHA SANHITA, 2023" + (" READ WITH SECTION 106" if freeze else "")
     subject = {"disclosure": "Request for disclosure of account information",
@@ -60,6 +68,7 @@ def render_notice(*, req_type: str, case, candidate, officer: str, contact: str,
         subject=subject, fraud_type=case.fraud_type, fraud_date=case.fraud_time.astimezone(IST).strftime("%d %b %Y"),
         sha=sha, role=candidate.role, chain=candidate.chain, addresses=[candidate.address], freeze=freeze,
         freeze_basis="Section 106 BNSS" if freeze else None, hops=candidate.hops, suspect=suspect,
-        share=f"{candidate.value_share:.0%}", confidence=f"{candidate.confidence:.2f}", evidence=candidate.evidence_tx[:6])
+        share=f"{candidate.value_share:.0%}", confidence=f"{candidate.confidence:.2f}", evidence=candidate.evidence_tx[:6],
+        linked=linked or [])
     legal = "Section 94 BNSS" + (" r/w Section 106 BNSS" if freeze else "")
     return body, legal

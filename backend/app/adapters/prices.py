@@ -9,9 +9,10 @@ from .base import AdapterUnavailable
 from .http import cached_get
 
 STABLES = {"USDT", "USDC", "USDC.E"}
-SYMBOLS = {"TRX": "TRXUSDT", "ETH": "ETHUSDT", "BTC": "BTCUSDT", "POL": "POLUSDT", "MATIC": "MATICUSDT"}
+SYMBOLS = {"TRX": "TRXUSDT", "ETH": "ETHUSDT", "BTC": "BTCUSDT", "POL": "POLUSDT", "MATIC": "MATICUSDT",
+           "BNB": "BNBUSDT", "SOL": "SOLUSDT"}
 # used only if the price API is unreachable and nothing is cached; flagged as approximate in stats
-FALLBACK = {"TRX": 0.3, "ETH": 3000.0, "BTC": 100000.0, "POL": 0.3, "MATIC": 0.3}
+FALLBACK = {"TRX": 0.3, "ETH": 3000.0, "BTC": 100000.0, "POL": 0.3, "MATIC": 0.3, "BNB": 600.0, "SOL": 150.0}
 
 _mem: dict[tuple[str, str], float] = {}
 

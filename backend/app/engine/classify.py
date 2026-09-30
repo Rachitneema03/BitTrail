@@ -80,6 +80,31 @@ def classify_behaviour(n: Node, outs: list[Transfer], labels: LabelIndex, res: T
                 hot.parent, hot.parent_share, hot.parent_txs = n.id, e.value_share, e.tx_hashes[:3]
             return
 
+    # --- exchange cluster: most outflow goes to ONE exchange's labelled wallets (internal / consolidation wallet) ---
+    ec = cfg.get("exchange_cluster")
+    if ec and len(by_cp) > ds["max_out_counterparties"]:
+        by_entity: dict[str, float] = defaultdict(float)
+        best_cp: dict[str, tuple[str, float]] = {}
+        for cp, txs in by_cp.items():
+            lab = labels.primary(n.chain, cp)
+            if lab and lab.type in ("vasp_hot", "vasp_cold"):
+                usd = sum(t.amount_usd for t in txs)
+                by_entity[lab.entity] += usd
+                if usd > best_cp.get(lab.entity, ("", 0.0))[1]:
+                    best_cp[lab.entity] = (cp, usd)
+        if by_entity:
+            entity, usd = max(by_entity.items(), key=lambda kv: kv[1])
+            share = usd / usd_out
+            if share >= ec["min_out_share"]:
+                n.kind, n.terminal = "vasp_hot", True
+                n.entity, n.label_source, n.label_tier = entity, "heuristic:exchange_cluster", "inferred"
+                n.sweep_to, n.sweep_share = best_cp[entity][0], share
+                n.reasons.append(
+                    f"Exchange-cluster pattern: {share:.0%} of outflow goes to {entity} labelled wallets "
+                    f"(largest: {short(best_cp[entity][0])}) across {len(by_cp)} counterparties. Unlabelled "
+                    f"{entity} internal wallet (candidate cluster similarity, not a confirmed label)")
+                return
+
     # --- service-like (high-throughput wallet, possibly an unlabelled VASP) ---
     sl = cfg["service_like"]
     span_days = (outs[-1].timestamp - outs[0].timestamp).total_seconds() / 86400 if len(outs) > 1 else 999

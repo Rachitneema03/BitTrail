@@ -27,8 +27,13 @@ def health(db: Session = Depends(get_db)):
     s = settings()
     return {"status": "ok", "demo_mode": s.demo_mode, "labels": db.execute(select(func.count(Label.id))).scalar(),
             "labelled_addresses": len(label_index()),
-            "chains": {"tron": True, "bitcoin": True, "ethereum": bool(s.etherscan_api_key) or s.demo_mode,
-                       "polygon": bool(s.etherscan_api_key) or s.demo_mode},
+            "chains": {"tron": True, "bitcoin": True, "solana": True,
+                       "ethereum": bool(s.etherscan_api_key) or s.demo_mode,
+                       "polygon": bool(s.etherscan_api_key) or s.demo_mode,
+                       "bsc": bool(s.bsc_api_base) or s.demo_mode},
+            "ai": {"provider": "Sarvam AI", "configured": bool(s.sarvam_api_key)},
+            "bridge_tracker": "LI.FI" if s.bridge_tracker else None,
+            "version": s.app_version,
             "db": "sqlite" if s.is_sqlite else "postgres"}
 
 

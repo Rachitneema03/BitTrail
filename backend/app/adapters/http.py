@@ -20,7 +20,8 @@ from ..models import ApiCache
 from .base import AdapterUnavailable
 
 # minimum seconds between calls, per provider (free tiers)
-MIN_INTERVAL = {"trongrid": 0.4, "etherscan": 0.25, "mempool": 0.3, "binance": 0.1}
+MIN_INTERVAL = {"trongrid": 0.4, "etherscan": 0.25, "bscapi": 0.25, "mempool": 0.3, "binance": 0.1,
+                "solana": 0.6, "lifi": 0.3, "sarvam": 0.5}
 _locks: dict[str, asyncio.Lock] = {}
 _last_call: dict[str, float] = {}
 _client: httpx.AsyncClient | None = None
@@ -43,8 +44,9 @@ def _redact(params: dict | None) -> dict:
 
 
 async def cached_get(provider: str, url: str, params: dict | None = None, headers: dict | None = None,
-                     ttl_seconds: int | None = None, retries: int = 4) -> dict | list:
-    key = cache_key(provider, url, _redact(params))
+                     ttl_seconds: int | None = None, retries: int = 4, json_body: dict | None = None) -> dict | list:
+    """GET (or POST when json_body is given, e.g. JSON-RPC) through the cache."""
+    key = cache_key(provider, url, {**_redact(params), **({"__body": json_body} if json_body else {})})
     s = settings()
     with SessionLocal() as db:
         row = db.get(ApiCache, key)
@@ -66,7 +68,10 @@ async def cached_get(provider: str, url: str, params: dict | None = None, header
             if wait > 0:
                 await asyncio.sleep(wait)
             try:
-                r = await _get_client().get(url, params=params, headers=headers)
+                if json_body is not None:
+                    r = await _get_client().post(url, params=params, headers=headers, json=json_body)
+                else:
+                    r = await _get_client().get(url, params=params, headers=headers)
             except httpx.HTTPError as e:
                 last_exc = e
                 r = None
@@ -76,7 +81,8 @@ async def cached_get(provider: str, url: str, params: dict | None = None, header
             with SessionLocal() as db:
                 row = db.get(ApiCache, key)
                 if row is None:
-                    db.add(ApiCache(key=key, provider=provider, request={"url": url, "params": _redact(params)},
+                    db.add(ApiCache(key=key, provider=provider,
+                                    request={"url": url, "params": _redact(params), **({"body": json_body} if json_body else {})},
                                     response=data, ttl_seconds=ttl_seconds))
                 else:
                     row.response, row.fetched_at = data, datetime.now(timezone.utc)

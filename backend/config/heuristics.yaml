@@ -1,19 +1,27 @@
 # Attribution thresholds and weights. Tune against scripts/eval_hide_and_seek.py.
+# The SHA-256 of this file is recorded in every evidence manifest ("ruleset_sha256").
 
 deposit_sweep:
   min_out_share: 0.9            # share of outflow (USD) going to one labelled exchange hot wallet
   max_out_counterparties: 3     # deposit addresses talk to very few destinations
   max_sweep_delay_hours: 24     # traced funds' arrival -> first sweep to the hot wallet
 
+exchange_cluster:
+  # An unlabelled wallet that sends most of its outflow to ONE exchange's labelled wallets, while talking to
+  # more counterparties than a deposit address would, is inferred to be part of that exchange's cluster.
+  min_out_share: 0.6
+
 service_like:
   # Adapters return a sample of the latest <=200 transfers, so thresholds are sample-based.
   min_sample_counterparties: 60
   full_page_within_days: 3      # a full 200-transfer page inside this many days = high-throughput service
+  min_collection_senders: 20    # a wallet that pays nothing out but receives from >= N distinct senders
 
 weights:
   label_tier: 0.9
   sweep: 0.7
   ext_tag: 0.5
+  history: 0.5                  # same address attributed to this VASP in another case / verified by the VASP
   value: 0.4
   recency: 0.2
 
@@ -26,8 +34,16 @@ label_tier_score:
 
 path_factor:
   clean: 1.0
-  bridge: 0.7
+  bridge: 0.7                   # bridge on path with unknown continuity; with a continuity score c: 0.5 + 0.5*c
   mixer: 0.0
+
+continuity:                     # cross-chain continuity score = weighted sum of these components
+  amount: 0.35                  # USD in vs USD out similarity
+  time: 0.25                    # 1 within full_minutes, falling to 0 at zero_hours
+  bridge: 0.3                   # bridge tracker confirms the pair of transactions
+  destination: 0.1              # destination is not a high-throughput service
+  full_minutes: 10
+  zero_hours: 24
 
 recency:
   full_days: 7
@@ -39,3 +55,34 @@ actionability:
   sahyog_only: 0.85
   foreign_le_portal: 0.6
   unknown: 0.3
+
+typology:
+  split_min_recipients: 3       # one wallet paying >= N traced recipients within split_window_hours
+  split_window_hours: 24
+  rapid_hop_minutes: 60         # a hop made within this many minutes of the funds arriving
+  rapid_min_hops: 2
+  layering_min_intermediaries: 3
+  passthrough_min_share: 0.9    # forwards >= 90% of what it received ...
+  passthrough_max_hours: 24     # ... within this many hours
+  passthrough_min_wallets: 2
+
+risk_weights:                   # overall risk = weighted mean of the six axes (0-100)
+  velocity: 0.15
+  layering: 0.2
+  cross_chain: 0.15
+  proliferation: 0.1
+  vasp_exposure: 0.15
+  historical: 0.25
+
+risk_levels:                    # overall score thresholds
+  medium: 30
+  high: 55
+  critical: 75
+
+alerts_default:                 # initial alert rules (editable in the UI, stored in the settings table)
+  large_transfer_usd: 5000
+  new_activity: true
+  score_increase_points: 5
+  new_relationship: true
+  risk_patterns: true
+  min_risk_level: high

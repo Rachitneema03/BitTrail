@@ -26,14 +26,16 @@
 ## What BitTrail does (MVP)
 
 1. **Intake** a case (FIR, NCRP ID, fraud time, wallets) — mock Sahyog.
-2. **Trace forward** (value-weighted breadth-first search) and **backward 2 hops** (on-ramp) on **Tron, Ethereum, Polygon, Bitcoin**.
-3. **Classify** each address: VASP hot / deposit wallet, mixer, bridge, sanctioned, off-ramp, unknown service, intermediary.
-4. **Score and rank** candidate VASPs: `rank = value_share × confidence × actionability`.
-5. **Act:** hash-sealed evidence PDF + drafted Section 94 BNSS notice → mock Sahyog → VASP inbox.
-6. **Link cases** that share deposit addresses; **alert** when watched funds move.
-7. **Labels flywheel:** a VASP confirmation becomes a verified label and re-scores open cases.
+2. **Trace forward** (value-weighted breadth-first search) and **backward 2 hops** (on-ramp) on **Tron, Bitcoin, Solana, Ethereum, Polygon, BNB Chain**; **cross-chain** through bridges via the LI.FI status API with a continuity score.
+3. **Classify** each address: VASP hot / deposit wallet, exchange cluster (inferred), mixer, bridge, sanctioned, off-ramp, unknown service, intermediary.
+4. **Score and rank** candidate VASPs: `rank = value_share × confidence × actionability`, with a factor-by-factor breakdown, "why A not B" and what-if scenarios.
+5. **Risk + typologies:** six-axis risk profile and rule-based laundering patterns (splitting, consolidation, rapid movement, layering, repeated forwarding, network switching, mixer, sanctions).
+6. **Act:** hash-sealed evidence PDF (timeline, score calculation, patterns, integrity) + drafted Section 94 BNSS notice (optionally consolidated across linked cases) → mock Sahyog → VASP inbox.
+7. **Investigation memory:** cases linked by shared addresses, a history factor in scoring, and a labels flywheel (a VASP confirmation becomes a verified label and re-scores open cases).
+8. **Monitoring:** watch-list on suspect, deposit and end-point wallets; configurable alerts; timeline + investigation replay.
+9. **Sarvam AI (optional):** case summary (English/Hindi), "Ask this case", Hindi notice translation — from computed evidence only.
 
-**Not in the MVP:** real Sahyog integration, Solana/BNB, bridge decoding, graph neural networks, Neo4j, on-prem LLM.
+**Not in the MVP:** real Sahyog integration, graph neural networks, Neo4j, on-prem LLM.
 
 ## Non-negotiable principles
 
@@ -58,6 +60,7 @@
 | Reports | **fpdf2** PDF (pure Python); SHA-256 canonical manifest; Jinja2 for notices |
 | Frontend | **Vite + React 19 + TypeScript (strict)**, Tailwind v4, **Cytoscape.js** (graph), **ECharts** (Sankey) |
 | Deploy | **One Docker image** (React build served by FastAPI) → **Railway**; DB → Supabase · fallback → `docker compose` |
+| AI | **Sarvam AI** (`sarvam-105b` chat, `sarvam-translate:v1`), optional, narration only |
 
 ## External data sources
 
@@ -65,11 +68,14 @@
 |---|---|---|
 | Tron transfers (TRX, USDT-TRC20) | TronGrid | `TRONGRID_API_KEY` |
 | Tron address tags | Tronscan | — |
-| Ethereum + Polygon | Etherscan API V2 (`chainid=1` / `137`) | `ETHERSCAN_API_KEY` |
+| Ethereum + Polygon + BNB Chain | Etherscan API V2 (`chainid=1` / `137` / `56`; BNB needs paid tier or `BSC_API_BASE`) | `ETHERSCAN_API_KEY`, `BSC_API_BASE` |
 | Bitcoin | mempool.space | — |
-| Daily USD prices | free price API | `PRICE_API_BASE` |
-| Exchange wallets (high confidence) | DefiLlama open-source CEX wallet lists | — |
-| Exchange / bridge / mixer labels | Dune Spellbook CEX lists, Etherscan/Tronscan label dumps | — |
+| Solana | Solana JSON-RPC (public; Helius URL recommended) | `SOLANA_RPC_URL` |
+| Cross-chain destinations | LI.FI status API | `BRIDGE_TRACKER` |
+| Daily USD prices | Binance public daily klines (USDT/USDC = $1) | — |
+| Exchange labels | Dune Spellbook CEX lists (Tron, BTC, Solana, EVM incl. BNB) | — |
+| Mixer / bridge labels | curated lists in `labels/seed.py` (Tornado Cash, LI.FI, Wormhole, Polygon PoS, Across, Stargate) | — |
+| LLM (narration only) | Sarvam AI | `SARVAM_API_KEY` |
 | Sanctioned addresses | OFAC SDN crypto address lists | — |
 | VASP registry (FIU-IND, Sahyog status) | hand-curated `backend/data/vasp_registry.json` | — |
 
@@ -82,7 +88,8 @@ Known constraint: Etherscan's free tier no longer covers BNB Chain, Base or Opti
 **Classification** (first match wins; thresholds in `backend/config/heuristics.yaml`):
 1. mixer → terminal stop · 2. bridge → terminal · 3. sanctioned → flag, continue · 4. labelled VASP → terminal
 5. **Deposit-sweep:** ≥ 90% of outflow goes to one `vasp_hot`, ≤ 3 outgoing counterparties, first sweep ≤ 24 h after the traced funds arrive → `vasp_deposit` (inferred)
-6. **Service-like:** ≥ 10k txs or ≥ 1k counterparties → `unknown_service`
+5b. **Exchange cluster:** > 3 counterparties and ≥ 60% of outflow to ONE exchange's labelled wallets → `vasp_hot` (inferred)
+6. **Service-like:** ≥ 60 distinct recipients in the latest ≤ 200 transfers, or a full page within 3 days → `unknown_service`
 7. known P2P / fintech → `offramp` · 8. else `intermediary`
 
 **Confidence:** `path_factor × (1 − Π(1 − wᵢ·sᵢ))`
@@ -92,6 +99,7 @@ Known constraint: Etherscan's free tier no longer covers BNB Chain, Base or Opti
 | label tier | 0.9 |
 | sweep | 0.7 |
 | external tag | 0.5 |
+| history (investigation memory) | 0.5 |
 | value share | 0.4 |
 | recency | 0.2 |
 
@@ -160,8 +168,9 @@ bittrail/                  (repo root = this folder)
 - [x] Research, PPT (6-slide SIH template), PRD, architecture, schema, phase plan
 - [x] Prototype v0.1: phases 1–6 built. Tron / BTC live (ETH / Polygon need `ETHERSCAN_API_KEY`), engine + unit tests, full UI, reports, notices, mock Sahyog + VASP inbox, flywheel, cross-case links, watch poller, Supabase, Dockerfile / Railway config
 - [x] Verified: `pytest` (6 pass) and `scripts/smoke_test.py` pass on SQLite and on Supabase; UI walkthrough in Edge with no browser errors
-- [ ] Not yet: hosted deployment (needs your Railway account), hide-and-seek accuracy evaluation (`eval_hide_and_seek.py`), a third demo case ending at Binance, Docker build tested (Docker isn't installed on the dev machine)
+- [x] v0.2: explainable scoring (factor points, why-A-not-B, what-if), history factor, exchange-cluster rule, BNB Chain + Solana adapters, LI.FI bridge continuity, typologies + six-axis risk, timeline + replay, configurable alerts + per-case monitoring, consolidated requests, PDF upgrade (timeline, score calc, patterns, integrity), Sarvam AI (summary, ask, Hindi translation), accuracy test (`docs/eval.md`). 13 tests pass; smoke test passes.
+- [ ] Not yet: hosted deployment (needs your Railway account), a demo case ending at Binance, a real cross-chain demo trail (needs `ETHERSCAN_API_KEY`), Docker build tested (Docker isn't installed on the dev machine)
 
 **Demo cases** (`backend/data/demo_cases.json`): real Tron wallets `TKxQN5i…` (Case 1) and `TD1Jp17…` (Case 2) both reach CoinDCX deposit `TADSuFLf…` → linked. Case metadata is fictional.
 
-**Open decisions:** BNB Chain in the MVP? LLM narrative or template only? Is the demo login-gated? (It is now, with one-click demo roles.)
+**Open decisions:** BNB data source (paid Etherscan tier vs another Etherscan-compatible API)? Helius key for faster Solana? Sarvam model choice (`sarvam-105b` vs `sarvam-30b`)?

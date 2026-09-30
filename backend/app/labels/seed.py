@@ -25,6 +25,16 @@ TORNADO = [
 ]
 
 
+# Well-known bridge / cross-chain router contracts (public explorer name tags). Curated: verify before operational use.
+BRIDGES = [
+    ("0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae", "LI.FI Diamond", ("ethereum", "polygon", "bsc")),
+    ("0x3ee18b2214aff97000d974cf647e7c347e8fa585", "Wormhole Token Bridge", ("ethereum",)),
+    ("0xa0c68c638235ee32657e8f720a23cec1bfc77c77", "Polygon PoS Bridge (RootChainManager)", ("ethereum",)),
+    ("0x5c7bcd6e7de5423a257d81b442095a1a6ced35c5", "Across SpokePool", ("ethereum",)),
+    ("0x8731d54e9d02c286767d56ac03e8037c07e01e98", "Stargate Router", ("ethereum",)),
+]
+
+
 def _vasp_ids(db) -> dict[str, str]:
     return {v.name.lower(): v.id for v in db.execute(select(Vasp)).scalars()}
 
@@ -54,6 +64,10 @@ def seed_labels(db) -> int:
         for chain in ("ethereum",):
             rows.append({"chain": chain, "address": addr, "type": "mixer", "entity_name": "Tornado Cash",
                          "tier": "curated", "source": "curated_mixers", "source_ref": "Tornado Cash contract"})
+    for addr, name, chains in BRIDGES:
+        for chain in chains:
+            rows.append({"chain": chain, "address": addr, "type": "bridge", "entity_name": name,
+                         "tier": "curated", "source": "curated_bridges", "source_ref": "public explorer name tag"})
     unique: dict[tuple, dict] = {}
     for r in rows:
         unique.setdefault((r["chain"], r["address"], r["type"], r["source"]), r)

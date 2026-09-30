@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { post } from '../api/client'
 import { Button, Card, PageHeader } from '../components/ui'
 
-const detect = (a: string) => /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a) ? 'tron' : /^0x[0-9a-fA-F]{40}$/.test(a) ? 'ethereum' : /^(bc1|[13])/.test(a) ? 'bitcoin' : ''
+const detect = (a: string) => /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a) ? 'tron' : /^0x[0-9a-fA-F]{40}$/.test(a) ? 'ethereum'
+  : /^(bc1[0-9a-z]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,33})$/.test(a) ? 'bitcoin' : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) ? 'solana' : ''
 
 export default function NewCase() {
   const nav = useNavigate()
@@ -50,10 +51,11 @@ export default function NewCase() {
           <div className="mb-3 font-semibold">Suspect wallet(s)</div>
           {wallets.map((w, i) => (
             <div key={i} className="mb-3 flex flex-wrap gap-2">
-              <input required={i === 0} className={`${input} addr min-w-[280px] flex-1`} placeholder="T… / 0x… / bc1…" value={w.address}
+              <input required={i === 0} className={`${input} addr min-w-[280px] flex-1`} placeholder="Tron T… / EVM 0x… / Bitcoin bc1… / Solana address" value={w.address}
                 onChange={(e) => setWallets(wallets.map((x, j) => (j === i ? { address: e.target.value, chain: detect(e.target.value.trim()) } : x)))} />
               <select className={`${input} w-40`} value={w.chain} onChange={(e) => setWallets(wallets.map((x, j) => (j === i ? { ...x, chain: e.target.value } : x)))}>
-                <option value="">auto-detect</option><option value="tron">Tron</option><option value="ethereum">Ethereum</option><option value="polygon">Polygon</option><option value="bitcoin">Bitcoin</option>
+                <option value="">auto-detect</option><option value="tron">Tron</option><option value="ethereum">Ethereum</option><option value="polygon">Polygon</option>
+                <option value="bsc">BNB Chain</option><option value="solana">Solana</option><option value="bitcoin">Bitcoin</option>
               </select>
             </div>
           ))}

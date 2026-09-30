@@ -24,6 +24,8 @@ FIELDS = ["chain", "address", "type", "entity_name", "tier", "source", "source_r
 TRON_RE = re.compile(r"^T[1-9A-HJ-NP-Za-km-z]{33}$")
 EVM_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 BTC_RE = re.compile(r"^(bc1[0-9a-z]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$")
+SOL_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
+EVM_CHAINS = ["ethereum", "polygon", "bsc"]
 
 # ('tron', 'T...', 'Binance', 'Binance 1', ...)   or   (0xabc..., 'Binance', 'Binance 1', ...)
 TUPLE_RE = re.compile(r"\(\s*(?:'(?P<chain>[a-z_]+)'\s*,\s*)?'?(?P<addr>[0-9A-Za-z]+)'?\s*,\s*'(?P<name>[^']*)'\s*,\s*'(?P<distinct>[^']*)'")
@@ -42,8 +44,9 @@ def spellbook_rows() -> list[dict]:
         "bitcoin": ("bitcoin/cex_bitcoin_addresses.sql", ["bitcoin"], BTC_RE),
         "ethereum": ("ethereum/cex_ethereum_addresses.sql", ["ethereum"], EVM_RE),
         "polygon": ("polygon/cex_polygon_addresses.sql", ["polygon"], EVM_RE),
-        # generic list that applies to every EVM chain
-        "evms": ("cex_evms_addresses.sql", ["ethereum", "polygon"], EVM_RE),
+        "solana": ("solana/cex_solana_addresses.sql", ["solana"], SOL_RE),
+        # generic list that applies to every EVM chain (BNB Chain's own file just references it)
+        "evms": ("cex_evms_addresses.sql", EVM_CHAINS, EVM_RE),
     }
     for key, (path, chains, addr_re) in files.items():
         text = fetch(f"{SPELLBOOK}/{path}")
@@ -67,14 +70,16 @@ def spellbook_rows() -> list[dict]:
 
 def ofac_rows() -> list[dict]:
     rows: list[dict] = []
-    for asset in ["TRX", "USDT", "USDC", "ETH", "XBT"]:
+    for asset in ["TRX", "USDT", "USDC", "ETH", "XBT", "BSC", "SOL"]:
         text = fetch(f"{OFAC}/sanctioned_addresses_{asset}.txt")
         for line in text.splitlines():
             addr = line.strip()
             if TRON_RE.match(addr):
                 chains = ["tron"]
             elif EVM_RE.match(addr):
-                addr, chains = addr.lower(), ["ethereum", "polygon"]
+                addr, chains = addr.lower(), EVM_CHAINS
+            elif asset == "SOL" and SOL_RE.match(addr):
+                chains = ["solana"]
             elif BTC_RE.match(addr):
                 chains = ["bitcoin"]
             else:

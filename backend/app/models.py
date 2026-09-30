@@ -95,6 +95,7 @@ class Case(Base):
     amount_inr: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="open")
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    monitoring: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=True)
     created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTC, default=now)
     updated_at: Mapped[datetime] = mapped_column(UTC, default=now, onupdate=now)
@@ -118,6 +119,8 @@ class TraceJob(Base):
     params: Mapped[dict] = mapped_column(JSON, default=dict)
     progress: Mapped[dict] = mapped_column(JSON, default=dict)
     chain_heights: Mapped[dict] = mapped_column(JSON, default=dict)
+    # risk profile, typologies, integrity metadata (engine version, ruleset hash, data sources)
+    analysis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(UTC, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(UTC, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -157,7 +160,8 @@ class TraceEdge(Base):
     tx_count: Mapped[int] = mapped_column(Integer, default=1)
     first_ts: Mapped[datetime] = mapped_column(UTC)
     block: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    direction: Mapped[str] = mapped_column(String(10), default="forward")  # forward | backward | sweep
+    direction: Mapped[str] = mapped_column(String(10), default="forward")  # forward | backward | sweep | bridge
+    to_chain: Mapped[str | None] = mapped_column(String(20), nullable=True)  # cross-chain edges only
 
 
 class Candidate(Base):
@@ -182,6 +186,8 @@ class Candidate(Base):
     reasons: Mapped[list] = mapped_column(JSON, default=list)
     evidence_tx: Mapped[list] = mapped_column(JSON, default=list)
     path: Mapped[list] = mapped_column(JSON, default=list)
+    # factor contributions (points), what-if scenarios, evidence counts
+    explain: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class AddressCaseIndex(Base):
@@ -231,6 +237,8 @@ class Request(Base):
     addresses: Mapped[list] = mapped_column(JSON, default=list)
     body_md: Mapped[str] = mapped_column(Text)
     report_id: Mapped[str | None] = mapped_column(ForeignKey("reports.id"), nullable=True)
+    linked_case_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)  # consolidated request
+    translations: Mapped[dict | None] = mapped_column(JSON, nullable=True)     # e.g. {"hi-IN": "..."} via Sarvam
     status: Mapped[str] = mapped_column(String(20), default="draft")
     sahyog_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTC, default=now)
@@ -283,6 +291,14 @@ class ApiCache(Base):
     response: Mapped[dict | list] = mapped_column(JSON)
     fetched_at: Mapped[datetime] = mapped_column(UTC, default=now)
     ttl_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class Setting(Base):
+    """Key/value app settings (e.g. alert rules), editable from the UI."""
+    __tablename__ = "settings"
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(UTC, default=now, onupdate=now)
 
 
 class Price(Base):

@@ -62,7 +62,9 @@ class Report(FPDF):
             self.multi_cell(0, 5.5, _t(v), new_x="LMARGIN", new_y="NEXT")
 
 
-def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: dict, edges: list[dict]) -> bytes:
+def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: dict, edges: list[dict],
+           analysis: dict | None = None, timeline: list[dict] | None = None, narrative: dict | None = None) -> bytes:
+    analysis = analysis or {}
     r = Report(sha, case["case_no"])
     r.alias_nb_pages()
     r.add_page()
@@ -71,6 +73,17 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
     r.cell(0, 10, _t("Blockchain Attribution Evidence Report"), new_x="LMARGIN", new_y="NEXT")
     r.para("Prepared by BitTrail (prototype) for lawful disclosure / freeze request via Sahyog. "
         "All findings are derived from public blockchain data; every hop is listed with its transaction hash.", 9)
+    top = next((c for c in candidates if c["role"] == "off_ramp"), None)
+    risk = analysis.get("risk") or {}
+    r.heading("Summary")
+    r.kv([("Nearest VASP", f"{top['vasp_name']} ({top['address_kind'].replace('_', ' ')}, {top['hops']} hops, "
+                           f"confidence {top['confidence']:.2f})" if top else "None reached within trace limits"),
+          ("Risk level", f"{risk.get('level', '-').upper()} ({risk.get('overall', '-')}/100)" if risk else "-"),
+          ("Patterns detected", ", ".join(t["name"] for t in analysis.get("typologies", [])) or "None")])
+    if narrative and narrative.get("text"):
+        src = "Sarvam AI" if narrative.get("source") == "sarvam" else "template"
+        r.para(f"Narrative ({src}; written only from the evidence below, not used for attribution):", style="B")
+        r.para(narrative["text"])
     r.heading("1. Case")
     r.kv([("Case no.", f"#{case['case_no']}"), ("FIR no.", case["fir_no"]), ("NCRP ID", case.get("ncrp_id") or "-"),
           ("Police station / State", f"{case.get('police_station') or '-'} / {case.get('state') or '-'}"),
@@ -96,6 +109,17 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
         r.para("Reasons:", style="B")
         for reason in c["reasons"]:
             r.para(f"  - {reason}")
+        ex = c.get("explain") or {}
+        if ex.get("contributions"):
+            r.para(f"Score calculation: {ex.get('formula', '')}; path factor {ex.get('path_factor', 1):.2f}", style="B")
+            for f in ex["contributions"]:
+                r.para(f"  +{f['points']:.1f} pts  {f['label']}  (signal {f['signal']:.2f} x weight {f['weight']:.2f})")
+            for w in ex.get("what_if", []):
+                r.para(f"  What if: {w['scenario']} -> confidence {w['confidence']:.2f} ({w['delta']:+.2f})")
+            ev = ex.get("evidence") or {}
+            if ev:
+                r.para(f"  Supporting evidence: {ev.get('transactions', 0)} transactions, {ev.get('intermediaries', 0)} "
+                       f"intermediary wallets, chains {', '.join(ev.get('chains', []))}")
         if c["evidence_tx"]:
             r.para("Evidence transactions (suspect -> VASP):", style="B")
             r.set_font("Courier", "", 7.5)
@@ -103,7 +127,26 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
                 r.multi_cell(0, 4, _t(f"  {EXPLORER.get(c['chain'], '')}{tx}"), new_x="LMARGIN", new_y="NEXT")
         r.ln(2)
 
-    r.heading("3. Fund-flow path")
+    r.heading("3. Risk profile and detected patterns")
+    if risk:
+        for ax in risk.get("axes", []):
+            r.para(f"  {ax['label']}: {ax['score']}/100 - {ax['why']}")
+    for ty in analysis.get("typologies", []):
+        r.para(f"  [{ty['severity'].upper()}] {ty['name']}: {ty['detail']}", style="B")
+        if ty.get("tx"):
+            r.set_font("Courier", "", 6.5)
+            for tx in ty["tx"][:3]:
+                r.multi_cell(0, 3.5, _t(f"     tx {tx}"), new_x="LMARGIN", new_y="NEXT")
+    if not analysis.get("typologies"):
+        r.para("  No laundering typology rules fired on this trace.")
+
+    if timeline:
+        r.heading("4. Investigation timeline")
+        for ev in timeline[:80]:
+            ts = ev["ts"][:16].replace("T", " ")
+            r.para(f"  {ts} UTC  [{ev['kind']}] {ev['title']}: {ev['detail']}")
+
+    r.heading("5. Complete transaction path")
     for e in edges:
         if e["direction"] == "backward":
             continue
@@ -118,14 +161,26 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
         for tx in e["tx_hashes"][:3]:
             r.multi_cell(0, 3.5, _t(f"     tx {tx}"), new_x="LMARGIN", new_y="NEXT")
 
-    r.heading("4. Method and reproducibility")
+    r.heading("6. Data sources, method and integrity")
     t = manifest["trace"]
     r.para(f"Trace parameters: {t['params']}. Chain heights at run time: {t['chain_heights']}. "
         f"Started {t['started_at']}, finished {t['finished_at']} (UTC).")
+    integ = manifest.get("integrity") or {}
+    if integ:
+        r.kv([("Engine / version", f"{integ.get('engine')} {integ.get('version')}"),
+              ("Ruleset SHA-256", integ.get("ruleset_sha256", "-")),
+              ("Labels loaded", str(integ.get("labels_loaded", "-"))),
+              ("Chains analysed", ", ".join(integ.get("chains", []))),
+              ("Data sources", "; ".join(f"{k}: {v}" for k, v in (integ.get("data_sources") or {}).items())),
+              ("Block ranges", str(integ.get("block_ranges") or "-")),
+              ("Time range (UTC)", " to ".join(integ.get("time_range") or []) or "-"),
+              ("Transactions / addresses", f"{integ.get('transactions_analysed')} / {integ.get('addresses_analysed')}"),
+              ("LLM used for attribution", "No")])
     r.para("Method: value-weighted forward trace from the suspect wallet(s) (funds after the reported fraud time), "
         "proportional value split at each hop, labels from public sources (Dune Spellbook exchange lists, OFAC SDN), "
-        "deposit-address detection from sweep behaviour, and a 2-hop backward trace for on-ramps. Mixers stop the "
-        "trace. No attribution decision is made by a language model.")
+        "deposit-address and exchange-cluster detection from behaviour, cross-chain continuity via a bridge tracker, "
+        "and a 2-hop backward trace for on-ramps. Mixers stop the trace. Confidence is a rule-based noisy-OR over the "
+        "factors listed per candidate. No attribution decision is made by a language model.")
     r.para("Integrity: the canonical JSON manifest of this report (case, parameters, chain heights, every edge with "
         "transaction hashes, and candidates) hashes to the SHA-256 printed in every page footer. Recomputing the "
         "hash over the manifest (sorted keys, no whitespace, UTF-8) must reproduce it exactly.")
