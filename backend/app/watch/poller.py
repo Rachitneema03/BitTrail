@@ -7,6 +7,7 @@ import logging
 from sqlalchemy import select
 
 from ..adapters import AdapterUnavailable, get_adapter
+from ..alert_rules import get_rules
 from ..config import settings
 from ..db import SessionLocal
 from ..engine.classify import short
@@ -29,16 +30,22 @@ async def check_item(item_id: str) -> int:
     new = [t for t in outs if t.tx_hash != last_tx and t.amount_usd >= 1]
     labels = label_index()
     with SessionLocal() as db:
+        rules = get_rules(db)
         w = db.get(WatchItem, item_id)
         w.last_checked_at = now()
         for t in new:
             lab = labels.primary(chain, t.to_address)
             to_vasp = lab and lab.type.startswith("vasp")
+            large = t.amount_usd >= rules["large_transfer_usd"]
+            if not (rules["new_activity"] or to_vasp or large):
+                continue
             where = f"{lab.entity} ({lab.type.replace('_', ' ')})" if lab else short(t.to_address)
-            what = f"{entity} deposit" if w.reason == "deposit_hold" and entity else "watched address"
-            db.add(Alert(case_id=case_id, watch_item_id=w.id, type="reached_vasp" if to_vasp else "funds_moved",
-                         severity="high" if to_vasp or w.reason == "deposit_hold" else "medium",
-                         message=f"Funds moved: ${t.amount_usd:,.0f} {t.asset} left {what} {short(address)} → {where}",
+            what = {"deposit_hold": f"{entity} deposit" if entity else "deposit", "suspect_wallet": "suspect wallet",
+                    "private_endpoint": "end-point wallet"}.get(w.reason, "watched address")
+            db.add(Alert(case_id=case_id, watch_item_id=w.id,
+                         type="reached_vasp" if to_vasp else "large_transfer" if large else "funds_moved",
+                         severity="high" if to_vasp or large or w.reason == "deposit_hold" else "medium",
+                         message=f"New activity: ${t.amount_usd:,.0f} {t.asset} left {what} {short(address)} → {where}",
                          data={"tx_hash": t.tx_hash, "to": t.to_address, "amount_usd": t.amount_usd,
                                "timestamp": t.timestamp.isoformat()}))
             w.last_seen_tx = t.tx_hash

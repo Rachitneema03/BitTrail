@@ -269,3 +269,21 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 - Every create, update, send or reply writes to `audit_log` (append-only; no updates or deletes via the API).
 - No real personal data. Case metadata in demos is fictional; wallet addresses are public on-chain data.
 - Target production: on-prem at I4C / NIC; LLM served locally; data never leaves government infrastructure.
+
+## 12. v0.2 additions
+
+| Area | What | Where |
+|---|---|---|
+| Explainable scoring | Noisy-OR confidence split into additive factor points: `points_i = C × (−ln(1 − wᵢsᵢ)) / Σ(−ln(1 − wⱼsⱼ)) × 100` (sums exactly to C × 100). What-if scenarios recomputed from stored signals. "Why A not B" = factor-by-factor gap. | `engine/explain.py`, `Candidate.explain` |
+| Investigation memory | `history` factor (weight 0.5): 1.0 if the VASP confirmed the address earlier, else 0.6 + 0.15·(n−1) for n earlier cases attributing it to the same VASP. A later case linking to an earlier one updates the earlier case's risk profile. | `jobs.make_history`, `jobs._refresh_peer_risk` |
+| Exchange cluster | > 3 counterparties and ≥ 60% of outflow to one exchange's labelled wallets → `vasp_hot` (inferred) | `engine/classify.py` |
+| Chains | BNB Chain (`bsc`, Etherscan V2 chainid 56 or `BSC_API_BASE`), Solana (JSON-RPC; owner + USDT/USDC token accounts; SOL via system transfers, SPL via per-owner balance deltas) | `adapters/evm.py`, `adapters/solana.py` |
+| Cross-chain | A transfer into a labelled bridge → LI.FI status lookup → destination tx on the other chain → continuity score (amount 0.35, time 0.25, tracker confirmation 0.3, destination 0.1) → trace continues on the destination chain; path factor 0.5 + 0.5·continuity | `adapters/bridges.py`, `engine/trace._cross_chain` |
+| Typologies + risk | Splitting, consolidation, rapid movement, multi-hop layering, repeated forwarding, network switching, mixer, sanctions; six risk axes (velocity, layering, cross-chain, proliferation, VASP exposure, historical linkage) → overall + level | `engine/typology.py`, `TraceJob.analysis` |
+| Integrity | Engine version, ruleset SHA-256, labels loaded, data sources per chain, block/time ranges, counts, `llm_used_for_attribution: false` in every manifest | `jobs.integrity`, `reports/manifest.py` (schema v2) |
+| Timeline + replay | On-chain edges + trace runs + alerts + reports + notices + replies in time order; replay reveals edges in timestamp order | `timeline.py`, `GET /cases/{id}/timeline`, `CaseDetail` |
+| Alerts | Rules in the `settings` table (`GET/PUT /settings/alerts`): large transfer, new activity, score increase, new relationship, risk patterns (min level). Suspect wallets are watched too; `POST /cases/{id}/monitor` toggles a case. | `alert_rules.py`, `watch/poller.py` |
+| Requests | `consolidate: true` → one notice listing every linked case sharing the address / VASP | `routers/requests.py`, `notices/templates.py` |
+| Sarvam AI | `POST /cases/{id}/narrative` (en-IN / hi-IN; template fallback), `POST /cases/{id}/ask`, `POST /requests/{id}/translate`, `GET /ai/status`. Prompts contain only `llm.case_facts()`; outputs labelled AI-written; every call audited. | `llm.py`, `routers/insights.py` |
+| Migrations | `db.add_missing_columns()` adds new nullable columns on existing databases at startup | `db.py` |
+| Accuracy test | Label-ablation hide-and-seek on live Tron data | `scripts/eval_hide_and_seek.py` → `docs/eval.md` |

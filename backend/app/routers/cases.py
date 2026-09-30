@@ -15,7 +15,7 @@ from ..jobs import start_trace
 from ..models import Alert, Candidate, Case, CaseLink, CaseWallet, TraceEdge, TraceJob, TraceNode, User
 
 router = APIRouter(prefix="/api/v1", tags=["cases"])
-CHAINS = {"tron", "ethereum", "polygon", "bitcoin"}
+CHAINS = {"tron", "ethereum", "polygon", "bsc", "bitcoin", "solana"}
 
 
 class WalletIn(BaseModel):
@@ -65,6 +65,7 @@ def create_case(db: Session, data: CaseIn, user_id: str | None, is_demo: bool = 
 def case_dict(c: Case, wallets: list[CaseWallet] | None = None) -> dict:
     d = {k: getattr(c, k) for k in ("id", "case_no", "title", "fir_no", "ncrp_id", "police_station", "state", "fraud_type",
                                     "fraud_time", "amount_inr", "status", "is_demo", "created_at")}
+    d["monitoring"] = c.monitoring is not False
     if wallets is not None:
         d["wallets"] = [{"chain": w.chain, "address": w.address, "victim_tx_hash": w.victim_tx_hash} for w in wallets]
     return d
@@ -73,13 +74,14 @@ def case_dict(c: Case, wallets: list[CaseWallet] | None = None) -> dict:
 def job_dict(j: TraceJob | None) -> dict | None:
     if j is None:
         return None
-    return {k: getattr(j, k) for k in ("id", "status", "params", "progress", "chain_heights", "started_at", "finished_at", "error")}
+    return {k: getattr(j, k) for k in ("id", "status", "params", "progress", "chain_heights", "analysis",
+                                       "started_at", "finished_at", "error")}
 
 
 def cand_dict(c: Candidate) -> dict:
     return {k: getattr(c, k) for k in ("id", "vasp_id", "vasp_name", "role", "chain", "address", "address_kind", "hops",
                                        "value_share", "value_usd", "confidence", "actionability", "rank_score",
-                                       "funds_status", "signals", "reasons", "evidence_tx", "path")}
+                                       "funds_status", "signals", "reasons", "evidence_tx", "path", "explain")}
 
 
 def latest_job(db: Session, case_id: str, done_only: bool = False) -> TraceJob | None:
@@ -164,7 +166,8 @@ def graph(case_id: str, db: Session = Depends(get_db), user: User = Depends(requ
                             "entity": n.entity, "depth": n.depth, "value_share": n.value_share, "value_usd": n.value_usd,
                             "label_source": n.label_source, "label_tier": n.label_tier, "flags": n.flags,
                             "reasons": n.reasons, "stats": n.stats}} for n in nodes],
-        "edges": [{"data": {"id": e.id, "source": f"{e.chain}:{e.from_address}", "target": f"{e.chain}:{e.to_address}",
+        "edges": [{"data": {"id": e.id, "source": f"{e.chain}:{e.from_address}", "target": f"{e.to_chain or e.chain}:{e.to_address}",
+                            "to_chain": e.to_chain or e.chain,
                             "chain": e.chain, "direction": e.direction, "asset": e.asset, "amount_usd": e.amount_usd,
                             "value_share": e.value_share, "tx_hashes": e.tx_hashes, "tx_count": e.tx_count,
                             "first_ts": e.first_ts}} for e in edges],

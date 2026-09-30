@@ -9,10 +9,12 @@ export const pct = (n: number) => `${Math.round(n * 100)}%`
 export const short = (a: string) => (a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
 
 const EXPLORER_TX: Record<string, string> = {
-  tron: 'https://tronscan.org/#/transaction/', ethereum: 'https://etherscan.io/tx/', polygon: 'https://polygonscan.com/tx/', bitcoin: 'https://mempool.space/tx/',
+  tron: 'https://tronscan.org/#/transaction/', ethereum: 'https://etherscan.io/tx/', polygon: 'https://polygonscan.com/tx/',
+  bsc: 'https://bscscan.com/tx/', bitcoin: 'https://mempool.space/tx/', solana: 'https://solscan.io/tx/',
 }
 const EXPLORER_ADDR: Record<string, string> = {
-  tron: 'https://tronscan.org/#/address/', ethereum: 'https://etherscan.io/address/', polygon: 'https://polygonscan.com/address/', bitcoin: 'https://mempool.space/address/',
+  tron: 'https://tronscan.org/#/address/', ethereum: 'https://etherscan.io/address/', polygon: 'https://polygonscan.com/address/',
+  bsc: 'https://bscscan.com/address/', bitcoin: 'https://mempool.space/address/', solana: 'https://solscan.io/account/',
 }
 export const txUrl = (chain: string, tx: string) => (EXPLORER_TX[chain] ?? '') + tx
 export const addrUrl = (chain: string, a: string) => (EXPLORER_ADDR[chain] ?? '') + a

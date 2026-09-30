@@ -20,7 +20,7 @@ from .db import SessionLocal, init_db
 from .jobs import start_trace
 from .labels.seed import seed_all
 from .models import ApiCache, Case, Price
-from .routers import cases, misc, reports, requests
+from .routers import cases, insights, misc, reports, requests
 from .watch.poller import poll_forever
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="BitTrail API", version="0.1.0", lifespan=lifespan,
               description="Automated attribution of unknown crypto wallets to the nearest VASP (SIH 2026 · PS 26182 · team TrackSense)")
 app.add_middleware(CORSMiddleware, allow_origins=settings().cors_origins.split(","), allow_methods=["*"], allow_headers=["*"])
-for r in (cases.router, reports.router, requests.router, misc.router):
+for r in (cases.router, reports.router, requests.router, insights.router, misc.router):
     app.include_router(r)
 
 DIST = Path(settings().frontend_dist)

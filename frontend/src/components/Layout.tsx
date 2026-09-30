@@ -55,6 +55,7 @@ export default function Layout() {
                   <span key={c} className={cx('rounded px-1.5 py-0.5 text-[10px] font-semibold', on ? 'bg-teal/40 text-white' : 'bg-white/10 text-white/50')}>{c}</span>
                 ))}
                 {health.demo_mode && <span className="rounded bg-orange/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">demo mode</span>}
+                {health.ai && <span className={cx('rounded px-1.5 py-0.5 text-[10px] font-semibold', health.ai.configured ? 'bg-teal/40 text-white' : 'bg-white/10 text-white/50')}>Sarvam AI</span>}
               </div>
             )}
             <button className="mt-3 text-[#F0A36B] hover:underline" onClick={() => { logout(); nav('/login') }}>Sign out</button>

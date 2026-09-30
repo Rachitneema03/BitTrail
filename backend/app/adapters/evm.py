@@ -1,6 +1,8 @@
-"""Ethereum / Polygon adapter via Etherscan API V2 (one key, chainid switch).
+"""Ethereum / Polygon / BNB Chain adapter via Etherscan API V2 (one key, chainid switch).
 
-Requires ETHERSCAN_API_KEY. Follows native ETH/POL and whitelisted stablecoins.
+Requires ETHERSCAN_API_KEY. Follows native ETH/POL/BNB and whitelisted stablecoins.
+BNB Chain is not on Etherscan's free tier: use a paid key, or point BSC_API_BASE (+ BSC_API_KEY) at any
+Etherscan-compatible BNB Chain API.
 """
 from __future__ import annotations
 
@@ -20,6 +22,9 @@ CHAINS = {
         "0xc2132d05d31c914a87c6611c10748aeb04b58e8f": ("USDT", 6),
         "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": ("USDC", 6),
         "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": ("USDC.E", 6)}},
+    "bsc": {"chainid": 56, "native": "BNB", "tokens": {
+        "0x55d398326f99059ff775485246999027b3197955": ("USDT", 18),
+        "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d": ("USDC", 18)}},
 }
 
 
@@ -28,16 +33,25 @@ class EvmAdapter:
         self.chain = chain
         self.cfg = CHAINS[chain]
 
+    def _endpoint(self) -> tuple[str, str, str]:
+        s = settings()
+        if self.chain == "bsc" and s.bsc_api_base:
+            return s.bsc_api_base, s.bsc_api_key or s.etherscan_api_key, "bscapi"
+        return BASE, s.etherscan_api_key, "etherscan"
+
     async def _call(self, params: dict, ttl: int | None):
-        key = settings().etherscan_api_key
+        base, key, provider = self._endpoint()
         if not key and not settings().demo_mode:
-            raise AdapterUnavailable("ETHERSCAN_API_KEY not set: Ethereum/Polygon tracing disabled")
+            raise AdapterUnavailable(f"ETHERSCAN_API_KEY not set: {self.chain} tracing disabled")
         p = {"chainid": self.cfg["chainid"], **params, "apikey": key}
-        data = await cached_get("etherscan", BASE, p, ttl_seconds=ttl)
+        data = await cached_get(provider, base, p, ttl_seconds=ttl)
         if isinstance(data, dict) and data.get("status") == "0" and "No transactions" not in str(data.get("message")):
             if data.get("result") in ([], None):
                 return []
-            raise AdapterUnavailable(f"etherscan: {data.get('message')} {str(data.get('result'))[:120]}")
+            msg = str(data.get("result"))
+            if self.chain == "bsc" and "not supported" in msg.lower():
+                raise AdapterUnavailable("BNB Chain needs a paid Etherscan key or BSC_API_BASE (Etherscan-compatible API)")
+            raise AdapterUnavailable(f"{provider}: {data.get('message')} {msg[:120]}")
         return data.get("result", []) if isinstance(data, dict) else []
 
     async def _block_at(self, ts: datetime, closest: str) -> int:

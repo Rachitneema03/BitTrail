@@ -12,12 +12,19 @@ export const KIND_STYLE: Record<string, { color: string; label: string }> = {
   bridge: { color: '#7A4FBF', label: 'Bridge' },
   sanctioned: { color: '#B42318', label: 'Sanctioned' },
   offramp: { color: '#1F5FBF', label: 'P2P / off-ramp' },
+  bridge_dest: { color: '#7A4FBF', label: 'Cross-chain' },
   unknown_service: { color: '#C99A2E', label: 'Unknown service' },
 }
 
 const short = (a: string) => (a.length > 12 ? `${a.slice(0, 5)}…${a.slice(-4)}` : a)
 
-export default function TraceGraph({ graph, onSelect, selected }: { graph: Graph; onSelect: (id: string | null) => void; selected: string | null }) {
+interface Props {
+  graph: Graph; onSelect: (id: string | null) => void; selected: string | null
+  /** Replay: only these edge ids are shown (null = everything); the focus edge is highlighted. */
+  revealed?: Set<string> | null; focusEdge?: string | null
+}
+
+export default function TraceGraph({ graph, onSelect, selected, revealed = null, focusEdge = null }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const cy = useRef<Core | null>(null)
 
@@ -63,6 +70,9 @@ export default function TraceGraph({ graph, onSelect, selected }: { graph: Graph
         { selector: 'edge.forward', style: { 'line-color': '#D35F1F', 'target-arrow-color': '#D35F1F' } },
         { selector: 'edge.sweep', style: { 'line-color': '#0F7A6B', 'target-arrow-color': '#0F7A6B', 'line-style': 'dashed' } },
         { selector: 'edge.backward', style: { 'line-color': '#1F5FBF', 'target-arrow-color': '#1F5FBF', 'line-style': 'dotted', width: 3 } },
+        { selector: 'edge.bridge', style: { 'line-color': '#7A4FBF', 'target-arrow-color': '#7A4FBF', 'line-style': 'dashed' } },
+        { selector: '.dim', style: { opacity: 0.07 } },
+        { selector: 'edge.focus', style: { 'line-color': '#1F5FBF', 'target-arrow-color': '#1F5FBF', width: 10, opacity: 1, 'z-index': 99 } },
       ],
       layout: {
         name: 'breadthfirst', directed: true, spacingFactor: 1.25, padding: 30, animate: true, animationDuration: 600,
@@ -83,6 +93,19 @@ export default function TraceGraph({ graph, onSelect, selected }: { graph: Graph
     c.$(':selected').unselect()
     if (selected) c.getElementById(selected).select()
   }, [selected])
+
+  useEffect(() => {
+    const c = cy.current
+    if (!c) return
+    c.elements().removeClass('dim focus')
+    if (!revealed) return
+    const visibleNodes = new Set<string>(graph.nodes.filter((n) => n.data.kind === 'suspect').map((n) => n.data.id))
+    c.edges().forEach((e) => {
+      if (revealed.has(e.id())) { visibleNodes.add(e.data('source')); visibleNodes.add(e.data('target')) } else e.addClass('dim')
+    })
+    c.nodes().forEach((n) => { if (!visibleNodes.has(n.id())) n.addClass('dim') })
+    if (focusEdge) c.getElementById(focusEdge).addClass('focus')
+  }, [revealed, focusEdge, graph])
 
   return <div ref={ref} className="h-full w-full" />
 }

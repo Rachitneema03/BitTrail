@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from ..audit import audit
 from ..auth import current_user, require
 from ..db import get_db
-from ..models import Candidate, Case, Report, TraceEdge, TraceNode, User
+from ..models import Candidate, Case, Report, TraceEdge, TraceJob, TraceNode, User
 from ..reports.manifest import build_manifest, sha256
 from ..reports.pdf import render
+from ..timeline import build_timeline
 from .cases import cand_dict, latest_job
 
 router = APIRouter(prefix="/api/v1", tags=["reports"])
@@ -59,6 +60,10 @@ def get_pdf(report_id: str, db: Session = Depends(get_db), user: User = Depends(
               "tx_count": e.tx_count, "value_share": e.value_share, "direction": e.direction, "tx_hashes": e.tx_hashes}
              for e in db.execute(select(TraceEdge).where(TraceEdge.job_id == r.job_id).order_by(TraceEdge.first_ts)).scalars()]
     case_d = {k: getattr(case, k) for k in ("case_no", "fir_no", "ncrp_id", "police_station", "state", "fraud_type", "fraud_time")}
-    pdf = render(r.manifest, r.sha256, case_d, [cand_dict(c) for c in cands], nodes, edges)
+    job = db.get(TraceJob, r.job_id)
+    analysis = (job.analysis if job else None) or {}
+    narrative = (analysis.get("narratives") or {}).get("en-IN")
+    pdf = render(r.manifest, r.sha256, case_d, [cand_dict(c) for c in cands], nodes, edges,
+                 analysis=analysis, timeline=build_timeline(db, case), narrative=narrative)
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'inline; filename="BitTrail_Case{case.case_no}_{r.sha256[:8]}.pdf"'})

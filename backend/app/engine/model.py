@@ -46,7 +46,7 @@ class Edge:
     chain: str
     frm: str
     to: str
-    direction: str  # forward | backward | sweep
+    direction: str  # forward | backward | sweep | bridge
     assets: set[str] = field(default_factory=set)
     amount_usd: float = 0.0
     value_share: float = 0.0
@@ -54,6 +54,11 @@ class Edge:
     tx_count: int = 0
     first_ts: datetime | None = None
     block: int | None = None
+    to_chain: str | None = None  # set on cross-chain (bridge) edges
+
+    @property
+    def dest_chain(self) -> str:
+        return self.to_chain or self.chain
 
 
 @dataclass
@@ -80,6 +85,12 @@ class TraceResult:
             self.edges[k] = Edge(chain=chain, frm=frm, to=to, direction=direction)
         return self.edges[k]
 
+    def xedge(self, from_chain: str, frm: str, to_chain: str, to: str, direction: str) -> Edge:
+        k = (f"{from_chain}:{frm}", f"{to_chain}:{to}", direction)
+        if k not in self.edges:
+            self.edges[k] = Edge(chain=from_chain, frm=frm, to=to, direction=direction, to_chain=to_chain)
+        return self.edges[k]
+
 
 @dataclass
 class CandidateDraft:
@@ -99,3 +110,4 @@ class CandidateDraft:
     evidence_tx: list[str]
     path: list[str]
     funds_status: str = "unknown"
+    explain: dict = field(default_factory=dict)

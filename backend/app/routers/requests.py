@@ -10,9 +10,10 @@ from ..audit import audit
 from ..auth import current_user, require
 from ..config import heuristics
 from ..db import get_db
+from ..engine.explain import contributions, what_if
 from ..engine.score import noisy_or
 from ..labels.index import invalidate
-from ..models import Candidate, Case, CaseWallet, Label, Report, Request, User, Vasp, VaspReply, now
+from ..models import Candidate, Case, CaseLink, CaseWallet, Label, Report, Request, User, Vasp, VaspReply, now
 from ..notices.templates import render_notice
 
 router = APIRouter(prefix="/api/v1", tags=["requests"])
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/api/v1", tags=["requests"])
 class RequestIn(BaseModel):
     candidate_id: str
     type: str = "disclosure_and_freeze"
+    consolidate: bool = False  # include every linked case sharing this address / VASP
 
 
 class ReplyIn(BaseModel):
@@ -37,6 +39,9 @@ def req_dict(r: Request, db: Session) -> dict:
             "vasp_name": r.vasp_name, "vasp_id": r.vasp_id, "type": r.type, "legal_basis": r.legal_basis, "chain": r.chain,
             "addresses": r.addresses, "body_md": r.body_md, "status": r.status, "sahyog_ref": r.sahyog_ref,
             "report_id": r.report_id, "created_at": r.created_at, "sent_at": r.sent_at,
+            "linked_cases": [{"id": c.id, "case_no": c.case_no, "fir_no": c.fir_no, "state": c.state}
+                             for c in (db.get(Case, i) for i in (r.linked_case_ids or [])) if c],
+            "translations": r.translations or {},
             "reply": {"outcome": reply.outcome, "account_ref": reply.account_ref, "frozen_amount_usd": reply.frozen_amount_usd,
                       "note": reply.note, "replied_at": reply.replied_at} if reply else None}
 
@@ -53,12 +58,20 @@ def draft(case_id: str, data: RequestIn, db: Session = Depends(get_db), user: Us
                         .order_by(Report.created_at.desc())).scalar()
     vasp = db.get(Vasp, cand.vasp_id) if cand.vasp_id else None
     suspect = db.execute(select(CaseWallet.address).where(CaseWallet.case_id == case_id)).scalar()
+    linked: list[Case] = []
+    if data.consolidate:
+        ids = set()
+        for l in db.execute(select(CaseLink).where((CaseLink.case_a == case_id) | (CaseLink.case_b == case_id))).scalars():
+            if l.address == cand.address or (l.entity and l.entity == cand.vasp_name):
+                ids.add(l.case_b if l.case_a == case_id else l.case_a)
+        linked = sorted((db.get(Case, i) for i in ids), key=lambda c: c.case_no)
     body, legal = render_notice(req_type=data.type, case=case, candidate=cand, officer=user.name,
                                 contact=(vasp.nodal_contact if vasp and vasp.nodal_contact else f"Nodal Officer, {cand.vasp_name}"),
-                                suspect=suspect, sha=report.sha256 if report else None)
+                                suspect=suspect, sha=report.sha256 if report else None, linked=linked)
     r = Request(case_id=case_id, vasp_id=cand.vasp_id, vasp_name=cand.vasp_name, candidate_id=cand.id, type=data.type,
                 legal_basis=legal, chain=cand.chain, addresses=[cand.address], body_md=body,
-                report_id=report.id if report else None, status="draft")
+                report_id=report.id if report else None, status="draft",
+                linked_case_ids=[c.id for c in linked] or None)
     db.add(r)
     db.flush()
     audit(db, "request.draft", "request", r.id, user.id, {"case_id": case_id, "vasp": cand.vasp_name, "type": data.type})
@@ -128,12 +141,17 @@ def flywheel(db: Session, r: Request, outcome: str) -> int:
         pf = sig.pop("path_factor", 1.0)
         extra = {k: sig.pop(k) for k in list(sig) if k not in cfg["weights"]}
         sig["label_tier"] = 1.0 if confirmed else 0.0
-        if not confirmed:
+        if confirmed:
+            sig["history"] = 1.0
+        else:
             sig.pop("sweep", None)
+            sig.pop("history", None)
         old = c.confidence
         c.confidence = noisy_or(sig, cfg["weights"], pf)
         c.rank_score = round(c.value_share * c.confidence * c.actionability, 4)
         c.signals = {**sig, **extra, "path_factor": pf}
+        c.explain = {**(c.explain or {}), "contributions": contributions(sig, cfg["weights"], pf),
+                     "what_if": what_if(sig, cfg["weights"], pf, cfg), "path_factor": pf}
         verdict = "Verified" if confirmed else "Denied"
         c.reasons = [*c.reasons, f"{verdict} by {r.vasp_name} via Sahyog reply {r.sahyog_ref}: confidence {old:.2f} → {c.confidence:.2f}"]
         n += 1

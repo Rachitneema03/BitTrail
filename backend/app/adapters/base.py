@@ -5,12 +5,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Literal, Protocol
 
-Chain = Literal["tron", "ethereum", "polygon", "bitcoin"]
+Chain = Literal["tron", "ethereum", "polygon", "bsc", "bitcoin", "solana"]
 Direction = Literal["out", "in"]
+EVM_CHAINS = ("ethereum", "polygon", "bsc")
 
 TRON_RE = re.compile(r"^T[1-9A-HJ-NP-Za-km-z]{33}$")
 EVM_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 BTC_RE = re.compile(r"^(bc1[0-9a-z]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$")
+SOL_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
 
 
 class AdapterUnavailable(Exception):
@@ -63,11 +65,13 @@ def detect_chain(address: str) -> str | None:
         return "tron"
     if EVM_RE.match(a):
         return "ethereum"
-    if BTC_RE.match(a):
+    if BTC_RE.match(a) and len(a) <= 35:
         return "bitcoin"
+    if SOL_RE.match(a):
+        return "solana"
     return None
 
 
 def normalize_address(chain: str, address: str) -> str:
     a = address.strip()
-    return a.lower() if chain in ("ethereum", "polygon") else a
+    return a.lower() if chain in EVM_CHAINS else a
