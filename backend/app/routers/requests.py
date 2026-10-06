@@ -13,6 +13,7 @@ from ..db import get_db
 from ..engine.explain import contributions, what_if
 from ..engine.score import noisy_or
 from ..labels.index import invalidate
+from ..labels.registry import route
 from ..models import Candidate, Case, CaseLink, CaseWallet, Label, Report, Request, User, Vasp, VaspReply, now
 from ..notices.templates import render_notice
 
@@ -42,6 +43,7 @@ def req_dict(r: Request, db: Session) -> dict:
             "linked_cases": [{"id": c.id, "case_no": c.case_no, "fir_no": c.fir_no, "state": c.state}
                              for c in (db.get(Case, i) for i in (r.linked_case_ids or [])) if c],
             "translations": r.translations or {},
+            "route": r.route, "needs_approval": bool(r.needs_approval), "approved_by": r.approved_by,
             "reply": {"outcome": reply.outcome, "account_ref": reply.account_ref, "frozen_amount_usd": reply.frozen_amount_usd,
                       "note": reply.note, "replied_at": reply.replied_at} if reply else None}
 
@@ -65,16 +67,35 @@ def draft(case_id: str, data: RequestIn, db: Session = Depends(get_db), user: Us
             if l.address == cand.address or (l.entity and l.entity == cand.vasp_name):
                 ids.add(l.case_b if l.case_a == case_id else l.case_a)
         linked = sorted((db.get(Case, i) for i in ids), key=lambda c: c.case_no)
+    rt = route(vasp, cand.vasp_name)
     body, legal = render_notice(req_type=data.type, case=case, candidate=cand, officer=user.name,
                                 contact=(vasp.nodal_contact if vasp and vasp.nodal_contact else f"Nodal Officer, {cand.vasp_name}"),
-                                suspect=suspect, sha=report.sha256 if report else None, linked=linked)
+                                suspect=suspect, sha=report.sha256 if report else None, linked=linked, route=rt)
+    # officer review: a low-confidence attribution needs an I4C analyst's approval before it goes out
+    gate = heuristics().get("requests", {}).get("approval_below_confidence", 0.7)
+    needs = cand.confidence < gate and user.role != "analyst"
     r = Request(case_id=case_id, vasp_id=cand.vasp_id, vasp_name=cand.vasp_name, candidate_id=cand.id, type=data.type,
                 legal_basis=legal, chain=cand.chain, addresses=[cand.address], body_md=body,
-                report_id=report.id if report else None, status="draft",
-                linked_case_ids=[c.id for c in linked] or None)
+                report_id=report.id if report else None, status="pending_approval" if needs else "draft",
+                linked_case_ids=[c.id for c in linked] or None, route=rt, needs_approval=needs, created_by=user.id)
     db.add(r)
     db.flush()
-    audit(db, "request.draft", "request", r.id, user.id, {"case_id": case_id, "vasp": cand.vasp_name, "type": data.type})
+    audit(db, "request.draft", "request", r.id, user.id, {"case_id": case_id, "vasp": cand.vasp_name, "type": data.type,
+                                                         "route": rt["channel"], "needs_approval": needs})
+    db.commit()
+    return req_dict(r, db)
+
+
+@router.post("/requests/{req_id}/approve")
+def approve(req_id: str, db: Session = Depends(get_db), user: User = Depends(require("analyst"))):
+    """Analyst (I4C) review of a low-confidence attribution before the notice is sent."""
+    r = db.get(Request, req_id)
+    if not r:
+        raise HTTPException(404, "Request not found")
+    if r.status != "pending_approval":
+        raise HTTPException(409, f"Request is {r.status}, not awaiting approval")
+    r.status, r.approved_by = "draft", user.name
+    audit(db, "request.approve", "request", r.id, user.id, {"vasp": r.vasp_name})
     db.commit()
     return req_dict(r, db)
 
@@ -84,13 +105,17 @@ def send(req_id: str, db: Session = Depends(get_db), user: User = Depends(requir
     r = db.get(Request, req_id)
     if not r:
         raise HTTPException(404, "Request not found")
+    if r.status == "pending_approval":
+        raise HTTPException(409, "Low-confidence attribution: an I4C analyst must approve this request first")
     if r.status != "draft":
         raise HTTPException(409, f"Request already {r.status}")
+    channel = (r.route or {}).get("channel", "sahyog")
     n = db.execute(select(func.count(Request.id)).where(Request.sahyog_ref.is_not(None))).scalar() + 1
-    r.status, r.sent_at, r.sahyog_ref = "sent", now(), f"SHG-MOCK-{now().year}-{n:05d}"
+    prefix = {"le_portal": "LEP", "international": "MLAT"}.get(channel, "SHG")
+    r.status, r.sent_at, r.sahyog_ref = "sent", now(), f"{prefix}-MOCK-{now().year}-{n:05d}"
     case = db.get(Case, r.case_id)
     case.status = "request_sent"
-    audit(db, "request.send", "request", r.id, user.id, {"sahyog_ref": r.sahyog_ref, "vasp": r.vasp_name})
+    audit(db, "request.send", "request", r.id, user.id, {"sahyog_ref": r.sahyog_ref, "vasp": r.vasp_name, "channel": channel})
     db.commit()
     return req_dict(r, db)
 

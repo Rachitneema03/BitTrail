@@ -10,7 +10,7 @@
 
 - Investment and other cyber-fraud proceeds are increasingly moved as crypto, especially **USDT on Tron**. India lost **₹22,845.73 Cr** to cyber fraud in 2024 (MHA, Lok Sabha Q.344, 22 Jul 2025).
 - Suspect wallets are usually **unhosted**, so there is no one to ask who owns them. The funds eventually pass through a **VASP** (exchange, custodial wallet, P2P platform) that holds KYC.
-- Police can send disclosure and freeze requests through **Sahyog** (45+ crypto exchanges onboarded), but they **don't know which VASP** to send them to.
+- Police can send disclosure and freeze requests through **Sahyog** (33 VDA service providers onboarded per I4C's status report to the Delhi High Court, Apr 2025; "45+" per media reports, Jun 2025), but they **don't know which VASP** to send them to.
 - Finding that VASP means manually tracing hop by hop across chains, through mixers and bridges. That needs scarce experts, and meanwhile the funds cash out.
 - Real cases also show the reverse pattern: mules **buy USDT on an exchange's P2P market** (the on-ramp), and trails that **end in private wallets** abroad (e.g. ED's ₹303 Cr case, Jul 2026).
 

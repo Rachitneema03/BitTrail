@@ -9,8 +9,8 @@ from ..db import SessionLocal
 from ..models import Label
 
 TIER_ORDER = {"verified": 0, "published": 1, "curated": 2, "community": 3, "inferred": 4}
-TYPE_ORDER = {"mixer": 0, "bridge": 1, "vasp_deposit": 2, "vasp_hot": 3, "vasp_cold": 4, "offramp": 5,
-              "scam": 6, "sanctioned": 7}
+TYPE_ORDER = {"mixer": 0, "bridge": 1, "swap_service": 2, "vasp_deposit": 3, "vasp_hot": 4, "vasp_cold": 5,
+              "offramp": 6, "scam": 7, "sanctioned": 8}
 VASP_TYPES = {"vasp_hot", "vasp_cold", "vasp_deposit"}
 
 
@@ -21,6 +21,7 @@ class LabelRec:
     tier: str
     source: str
     negative: bool = False
+    ref: str | None = None
 
 
 class LabelIndex:
@@ -33,7 +34,7 @@ class LabelIndex:
         with SessionLocal() as db:
             for l in db.execute(select(Label)).scalars():
                 rows.setdefault((l.chain, l.address), []).append(
-                    LabelRec(l.type, l.entity_name, l.tier, l.source, l.negative))
+                    LabelRec(l.type, l.entity_name, l.tier, l.source, l.negative, l.source_ref))
         return cls(rows)
 
     def all(self, chain: str, address: str) -> list[LabelRec]:

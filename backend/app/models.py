@@ -243,6 +243,10 @@ class Request(Base):
     sahyog_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTC, default=now)
     sent_at: Mapped[datetime | None] = mapped_column(UTC, nullable=True)
+    route: Mapped[dict | None] = mapped_column(JSON, nullable=True)            # channel chosen from the VASP registry
+    needs_approval: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # low-confidence: analyst review first
+    approved_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
 
 class VaspReply(Base):

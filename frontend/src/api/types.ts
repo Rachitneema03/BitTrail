@@ -19,17 +19,27 @@ export interface Candidate {
 }
 
 export interface RiskAxis { key: string; label: string; score: number; why: string }
+export interface RiskCategory { code: string; label: string; severity: string; programs: string[]; addresses: string[]; entities: string[] }
 export interface Typology { code: string; name: string; severity: 'medium' | 'high' | 'critical'; detail: string; addresses: string[]; tx: string[] }
+export interface CrossHop {
+  provider: string; tool: string | null; entity: string | null; from_chain: string; bridge_address: string; src_tx: string
+  to_chain: string; to_address: string; dest_tx: string; usd_in: number; usd_out: number; minutes: number; continuity: number
+  components: { amount: number; time: number; bridge: number; destination: number }; confirmed: boolean; value_share: number
+  asset: string | null; supported: boolean; ts_in: string; ts_out: string
+}
 export interface Analysis {
-  risk?: { overall: number; level: 'low' | 'medium' | 'high' | 'critical'; axes: RiskAxis[] }
+  risk?: { overall: number; level: 'low' | 'medium' | 'high' | 'critical'; axes: RiskAxis[]; categories?: RiskCategory[] }
   typologies?: Typology[]
   integrity?: Record<string, unknown>
   narratives?: Record<string, { text: string; source: string; model: string | null }>
+  crosschain?: CrossHop[]
+  chains?: string[]
+  dust?: { transfers: number; usd: number; poisoning: number }
 }
 
 export interface Job {
   id: string; status: 'queued' | 'running' | 'done' | 'failed'; params: Record<string, number>
-  progress: { message?: string; nodes?: number; edges?: number; seconds?: number; notes?: string[]; seed_out_usd?: number; candidates?: number }
+  progress: { message?: string; nodes?: number; edges?: number; seconds?: number; notes?: string[]; seed_out_usd?: number; candidates?: number; chains?: string[]; bridges?: number }
   chain_heights: Record<string, number | null>; analysis: Analysis | null; started_at: string | null; finished_at: string | null; error: string | null
 }
 
@@ -62,13 +72,25 @@ export interface ReqT {
   report_id: string | null; created_at: string; sent_at: string | null
   linked_cases: { id: string; case_no: number; fir_no: string; state: string | null }[]
   translations: Record<string, string>
+  route: {
+    channel: 'sahyog' | 'sahyog_notice' | 'le_portal' | 'international'; label: string; url: string | null; why: string
+    alt_url?: string; sources?: { label: string; url: string }[]
+  } | null
+  needs_approval: boolean; approved_by: string | null
   reply: { outcome: string; account_ref: string | null; frozen_amount_usd: number | null; note: string | null; replied_at: string } | null
 }
+
+export interface Citation { n: number; id: string; kind: string; title: string; text: string; score: number; ref?: { chain?: string; address?: string; tx?: string[] } | null }
+export interface AskResult { answer: string; model: string | null; mode: 'retrieval' | 'rag+sarvam'; note: string; citations: Citation[] }
+
+export interface AuditRow { id: number; at: string; user: string; action: string; entity: string; entity_id: string | null; data: Record<string, unknown>; hash: string; prev_hash: string }
+export interface ChainSource { live: boolean; source: string; keyless: boolean }
 
 export interface Stats {
   cases: number; attributed: number; traced_usd: number; median_trace_seconds: number | null; links: number
   requests_sent: number; requests_confirmed: number; unread_alerts: number; verified_labels: number
   top_vasps: { vasp: string; cases: number; value_usd: number }[]
+  chains?: Record<string, number>; crosschain_hops?: number; crosschain_routes?: string[]
 }
 
 export interface AlertRules {
@@ -80,5 +102,6 @@ export interface AiStatus { provider: string; configured: boolean; model: string
 
 export interface Health {
   status: string; demo_mode: boolean; labels: number; chains: Record<string, boolean>; db: string
+  chain_sources?: Record<string, ChainSource>
   ai?: { provider: string; configured: boolean }; bridge_tracker?: string | null; version?: string
 }

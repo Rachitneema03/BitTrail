@@ -1,21 +1,250 @@
 {
-  "_note": "Hand-curated from public reporting (2024-2026). Values marked null are unknown. Verify with FIU-IND / I4C before operational use. Nodal contacts are placeholders.",
-  "vasps": [
-    {"name": "Binance", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration widely reported (2024)"},
-    {"name": "KuCoin", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration widely reported (2024)"},
-    {"name": "Bybit", "kind": "exchange", "country": "Global", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "FIU-IND registration reported (2025)"},
-    {"name": "Bitget", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": true, "status_source": "Bitget press release: onboarded on I4C Sahyog (Jun 2025)"},
-    {"name": "CoinDCX", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "WazirX", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "CoinSwitch", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "ZebPay", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "Mudrex", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "Giottus", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "Bitbns", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "Unocoin", "kind": "exchange", "country": "India", "fiu_ind_registered": true, "on_sahyog": null, "status_source": "Indian FIU-IND registered VDA SP (public lists)"},
-    {"name": "OKX", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Exited Indian market (2024); foreign request route"},
-    {"name": "HTX", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"},
-    {"name": "Coinbase", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"},
-    {"name": "Kraken", "kind": "exchange", "country": "Global", "fiu_ind_registered": null, "on_sahyog": null, "status_source": "Unknown"}
-  ]
+ "_note": "Compiled 2026-10-05 from public sources; every value cites the page it came from; null = no public evidence found (not proof of absence). fiu_ind_registered: Lok Sabha Unstarred Q.5805 (30 Mar 2026), Annexure-I (54 VDA SPs as on 09.03.2026). on_sahyog: Delhi HC order 29 Apr 2025 in W.P.(CRL) 1563/2024 recording I4C's status report (33 VDASPs onboarded), media reports, or the VASP's own announcement. Verify with FIU-IND / I4C before operational use. Nodal contacts are not public and stay placeholders.",
+ "sources": {
+  "fiu_ind": "https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps",
+  "sahyog_official": "https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+  "sahyog_media": "https://www.hindustantimes.com/india-news/over-45-crypto-exchanges-onboarded-on-i4c-s-sahyog-portal-101749031562459.html"
+ },
+ "vasps": [
+  {
+   "name": "Binance",
+   "kind": "exchange",
+   "country": "Seychelles",
+   "fiu_ind_registered": true,
+   "on_sahyog": null,
+   "le_portal_url": "https://app.kodexglobal.com/binance/signup",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://www.hindustantimes.com/india-news/over-45-crypto-exchanges-onboarded-on-i4c-s-sahyog-portal-101749031562459.html | LE channel: https://www.binance.com/en/support/law-enforcement",
+   "notes": "Country detail: Seychelles (FIU-registered entity: Nest Services Limited, earlier Binance International Limited); no official global HQ. Annexure-I #47 'Nest Services Limited (Earlier Binance International Limited) | Binance | Seychelles'. FIU-IND show-cause 28 Dec 2023 (PIB 1991372); FIU penalty Rs 18.82 crore, Order 10/DIR/FIU-IND/2024 dated 19.06.2024 (https://fiuindia.gov.in/pdfs/judgements/Binance_Order_10_2024.pdf). Sahyog: HT 4 Jun 2025 says 'Efforts are underway to bring major global players like Binance and Bitget onto the system'; no later confirmation found, so null. Binance LE page: 'For global law enforcement agencies, please use the following link: https://app.kodexglobal.com/binance/signup'."
+  },
+  {
+   "name": "KuCoin",
+   "kind": "exchange",
+   "country": "Seychelles",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": "https://www.kucoin.com/legal/requests",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://www.hindustantimes.com/india-news/over-45-crypto-exchanges-onboarded-on-i4c-s-sahyog-portal-101749031562459.html | LE channel: https://www.kucoin.com/support/47497300093767",
+   "notes": "Country detail: Seychelles (FIU-registered entity: Peken Global Limited). Annexure-I #41 'Peken Global Limited | KuCoin | Seychelles'. FIU penalty Rs 34.5 lakh, Order 08/DIR/FIU-IND/2024 dated 22.03.2024 (https://fiuindia.gov.in/pdfs/judgements/PGL_Order_08_2024.pdf). Sahyog per HT 4 Jun 2025 (officials): 'international platforms like KuCoin and Bybit have also been onboarded' - media report, not an official list. KuCoin page (updated 07/30/2025): 'Please submit all law enforcement requests via the KuCoin Information Request System'."
+  },
+  {
+   "name": "Bybit",
+   "kind": "exchange",
+   "country": "UAE",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://www.hindustantimes.com/india-news/over-45-crypto-exchanges-onboarded-on-i4c-s-sahyog-portal-101749031562459.html",
+   "notes": "Country detail: UAE (Dubai HQ per Wikipedia); FIU-registered entity Bybit Fintech Limited, Seychelles. Annexure-I #48 'Bybit Fintech Limited | Bybit | Seychelles'. FIU penalty Rs 9.27 crore, order dated 31 Jan 2025 (https://www.pib.gov.in/PressReleasePage.aspx?PRID=2098153). HQ: https://en.wikipedia.org/wiki/Bybit. Sahyog per HT 4 Jun 2025 (media). No official LE request page found; https://www.bybit.com/en/help-center/article/How-to-Report-Stolen-Assets only says Bybit 'will cooperate with law enforcement requests from competent authorities'. Beware look-alike site bybitexcai.com (lists a non-Bybit email)."
+  },
+  {
+   "name": "Bitget",
+   "kind": "exchange",
+   "country": "Seychelles",
+   "fiu_ind_registered": false,
+   "on_sahyog": true,
+   "le_portal_url": "https://app.kodexglobal.com/bitget/signup",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://www.globenewswire.com/news-release/2025/06/23/3103143/0/en/Bitget-Onboards-on-India-s-I4C-s-Sahyog-Portal-to-Support-Local-Law-Enforcement.html | LE channel: https://www.bitget.com/support/articles/12560603829062",
+   "notes": "Country detail: Seychelles (registered Dec 2022; previously Singapore). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Bitget press release 23 Jun 2025: 'Bitget has officially onboarded onto India's Sahyog portal'. So: on Sahyog but not FIU-registered. LE guide (dated 9 Jun 2025, read via r.jina.ai proxy) also gives lawenforcement@bitget.com; signups must use an official agency email."
+  },
+  {
+   "name": "OKX",
+   "kind": "exchange",
+   "country": "USA",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "https://app.kodexglobal.com/okx/signin",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://www.okx.com/help/okx-law-enforcement-request-guide",
+   "notes": "Country detail: USA (HQ relocated to San Jose in Apr 2025 per Wikipedia); historically Hong Kong. Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). OKX LE guide (last updated 3 Aug 2026, read via r.jina.ai proxy): 'All law enforcement requests should be submitted through our Kodex portal.' No Sahyog report found."
+  },
+  {
+   "name": "HTX",
+   "kind": "exchange",
+   "country": "Seychelles",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "mailto:regulatory@htx-inc.com",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://www.htx.com/terms/legal",
+   "notes": "Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). (listed as 'Huobi'). Also FIU show-cause 28 Dec 2023 (PIB 1991372). HTX legal page: Kodex https://app.kodexglobal.com/htx/signin is for US requests only; 'All other global law enforcement and regulatory authorities should send their requests to regulatory@htx-inc.com' (read via r.jina.ai proxy)."
+  },
+  {
+   "name": "Coinbase",
+   "kind": "exchange",
+   "country": "USA",
+   "fiu_ind_registered": true,
+   "on_sahyog": null,
+   "le_portal_url": "https://app.kodexglobal.com/gov/signup",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://help.coinbase.com/en/coinbase/other-topics/legal-policies/who-do-i-contact-for-a-subpoena-request-or-dispute-or-to-send-a-legal-document",
+   "notes": "Country detail: USA (San Francisco per Wikipedia); FIU-registered entity Coinbase India Private Limited. Annexure-I #49 'Coinbase India Private Limited | Coinbase | India (Linked to Global Coinbase)'. Registration announced Mar 2025 (https://www.businesstoday.in/technology/news/story/coinbase-registers-with-indias-fiu-plans-crypto-trading-launch-this-year-467626-2025-03-12). Also appears in Annexure-II takedown list (action predating registration). Coinbase: 'Criminal subpoenas and official requests for criminal matters should be submitted here' (Kodex); other LE questions to subpoenas@coinbase.com. No Sahyog report found."
+  },
+  {
+   "name": "Kraken",
+   "kind": "exchange",
+   "country": "USA",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "https://support.kraken.com/hc/forms/35862482750484",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://support.kraken.com/articles/how-do-i-submit-a-legal-inquiry",
+   "notes": "Country detail: USA (San Francisco; parent Payward, Inc.). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Also in FIU show-cause list 28 Dec 2023 (entity 'Payward Trading Ltd', BVI; PIB 1991372). The URL is Kraken's general Compliance & Legal inquiry form (document types include Subpoena / Court Order), not a dedicated LE portal. Kraken appears twice in the input list; deduplicated."
+  },
+  {
+   "name": "Gate.io",
+   "kind": "exchange",
+   "country": "Cayman Islands",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "mailto:regulatory@gate.com",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://gate.com/legal/law-enforcement",
+   "notes": "Country detail: Cayman Islands (Gate Technology Incorporated, George Town). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Also in FIU show-cause list 28 Dec 2023. Gate: 'All Law Enforcement Requests made to Gate shall be directed to regulatory@gate.com in English.'"
+  },
+  {
+   "name": "MEXC",
+   "kind": "exchange",
+   "country": "Seychelles",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "https://www.mexc.com/support/requests/legal",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://www.mexc.com/support/legal-compliance",
+   "notes": "Country detail: Seychelles (MEXC Global); related entities in Singapore and USA (Denver). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). (listed as 'MEXC Global'). MEXC announcement: 'As part of our registration process with the Financial Intelligence Unit-India (FIU-IND), MEXC will temporarily suspend services for users in India starting February 28, 2026' (https://www.mexc.com/announcements/article/temporary-suspension-of-services-for-existing-users-in-india-17827791532970); registration may have progressed after 09.03.2026 - re-check. LE channel is MEXC's 'Law Enforcement Online Request System (LEORS)'; access approval generally takes 15-20 business days. Pages read via r.jina.ai proxy."
+  },
+  {
+   "name": "Bitfinex",
+   "kind": "exchange",
+   "country": "British Virgin Islands",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps",
+   "notes": "Country detail: British Virgin Islands (iFinex Inc, Road Town). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Also in FIU show-cause list 28 Dec 2023. Bitfinex uses Kodex (https://www.kodexglobal.com/customer-stories/bitfinex: 'Kodex solves 99% of our pain points in handling law enforcement requests') but no public Bitfinex signup URL was found, so null."
+  },
+  {
+   "name": "Poloniex",
+   "kind": "exchange",
+   "country": "USA per FIU-IND address",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps",
+   "notes": "Country detail: USA per FIU-IND address (Polo Digital Assets Ltd, Boston, MA). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Named in FIU-IND non-compliance notice to 25 offshore VDA SPs, 1 Oct 2025 (PIB 2173758). No LE page found (poloniex.com unreachable from the research machine)."
+  },
+  {
+   "name": "Crypto.com",
+   "kind": "exchange",
+   "country": "Singapore",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "https://app.kodexglobal.com/gov/signup",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://help.crypto.com/en/articles/1360625-how-can-law-enforcement-agencies-get-in-touch-with-crypto-com",
+   "notes": "Country detail: Singapore (1 Raffles Quay per Wikipedia). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). (listed as 'Crypto.Com'). Crypto.com: 'has adopted the Kodex portal as the dedicated global channel for receiving law enforcement requests' (read via r.jina.ai proxy)."
+  },
+  {
+   "name": "BingX",
+   "kind": "exchange",
+   "country": "British Virgin Islands",
+   "fiu_ind_registered": false,
+   "on_sahyog": null,
+   "le_portal_url": "https://app.kodexglobal.com/bingx/signup",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | LE channel: https://bingx.com/en/support/articles/14687467143439",
+   "notes": "Country detail: British Virgin Islands (BingX Limited, Road Town). Not in Lok Sabha Q5805 Annexure-I (54 registered VDA SPs as on 09.03.2026); listed in Annexure-II (apps/URLs directed for takedown). Named in FIU-IND non-compliance notice, 1 Oct 2025 (PIB 2173758). BingX 'Law Enforcement Request Guide': 'Global law enforcement agencies: https://app.kodexglobal.com/bingx/signup' (read via r.jina.ai proxy)."
+  },
+  {
+   "name": "CoinDCX",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": "mailto:legal@coindcx.com",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf | LE channel: https://coindcx.com/",
+   "notes": "Country detail: India (Mumbai). Annexure-I #1 'Neblio Technologies Private Limited | Coin DCX'. Sahyog list #1 (spelt 'Nebilo Technologies'). Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. Site footer: 'Regulatory Issues/Enforcement Authorities: legal@coindcx.com' and '*FIU Registered entity, NEBLIO TECHNOLOGIES PVT LTD'. Mumbai: T&C give Mumbai courts exclusive jurisdiction (https://coindcx.com/legal/terms-and-conditions-coindcx/). No dedicated LE portal."
+  },
+  {
+   "name": "WazirX",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": "https://support.wazirx.com/hc/en-us/articles/4417398247066-Guidelines-for-Law-Enforcement-Legal-Requests",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf | LE channel: https://support.wazirx.com/hc/en-us/articles/4417398247066-Guidelines-for-Law-Enforcement-Legal-Requests",
+   "notes": "Country detail: India (operator Zanmai Labs Pvt Ltd); parent Zettai Pte Ltd, Singapore. Annexure-I #8 'Zanmai Labs PVT LTD | WazirX'. Sahyog list #8; also HT 4 Jun 2025: 'Among the domestic exchanges, WazirX has been confirmed to be onboarded'. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. LE guidelines: 'Authorized law enforcement agencies may send a request for information to legal@wazirx.com'. Hacked Jul 2024; Singapore restructuring sanctioned 13 Oct 2025; trading resumed 24 Oct 2025 (The Block, 23 Oct 2025)."
+  },
+  {
+   "name": "CoinSwitch",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": "https://coinswitch.co/law-enforcement-resource",
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf | LE channel: https://coinswitch.co/law-enforcement-resource",
+   "notes": "Country detail: India (Bitcipher Labs LLP; LE nodal address Bengaluru). Annexure-I #9 'Bitcipher Labs LLP | Coinswitch' and #10 'Nextgendev Solutions Private Limited | CoinswitchX'. Sahyog list #9 and #10. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. LE page: 'Nodal Desk Email id: nodaldesk@coinswitch.co' (about 48 working hours to reply)."
+  },
+  {
+   "name": "ZebPay",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Country detail: India (Awlencan Innovations India Ltd, registered office Hyderabad). Annexure-I #7 'Awlencan Innovations India Limited | Zebpay'. Sahyog list #7. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. No LE page found; nearest contact compliance@zebpay.com (privacy/compliance, not LE-specific)."
+  },
+  {
+   "name": "Mudrex",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Country detail: India (Bengaluru; Indian entity RPFAS Technologies Pvt Ltd). Annexure-I #11 'RPFAS Technologies Private Limited | Mudrex'. Sahyog list #11. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. No LE page found; only grievance email help@mudrex.com."
+  },
+  {
+   "name": "Giottus",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Annexure-I #5 'Giottus Technologies Pvt Ltd | Giottus'. Sahyog list #5. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. No LE page found; only support@giottus.com."
+  },
+  {
+   "name": "Bitbns",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Country detail: India (Buyhatke Internet Pvt Ltd / Bitbns Internet Pvt Ltd). Annexure-I #6 'Bitbns Internet Private Limited | Bitbns' (and #4 'Buyhatke internet private limited | Onramp'). Sahyog list #4 and #6. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. Site: 'FIU-India Registered Entity (Buyhatke Internet Private Limited)'. No LE page found; only hi@bitbns.com. Users reported frozen withdrawals; Delhi HC rejected a plea seeking a probe (Inc42 update, Mar 2026)."
+  },
+  {
+   "name": "Unocoin",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Country detail: India (Unocoin Technologies Pvt Ltd, registered office Tumkur, Karnataka). Annexure-I #3 'Unocoin Technologies PVT LTD | Unocoin'. Sahyog list #3. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. No LE page found; only support@unocoin.com."
+  },
+  {
+   "name": "Delta Exchange",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": null,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps",
+   "notes": "Country detail: India (Excelium Technologies Pvt Ltd, registered office Mumbai). Annexure-I #29 'Excelium Technologies Private Limited | Delta Exchange'. Site: 'registered entity with REID: VA00041101'. Excelium is NOT among the 33 VDASPs on Sahyog in the Apr 2025 Delhi HC order and no later report was found, so null. No LE page found; nearest contact compliance.delta@exceliumtech.com (privacy/grievance)."
+  },
+  {
+   "name": "Pi42",
+   "kind": "exchange",
+   "country": "India",
+   "fiu_ind_registered": true,
+   "on_sahyog": true,
+   "le_portal_url": null,
+   "status_source": "FIU-IND: https://sansad.in/getFile/lsapps/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=lsapps | Sahyog: https://delhihighcourt.nic.in/app/showFileJudgment/PMS29042025CRLW15632024_192037.pdf",
+   "notes": "Country detail: India (Lightningnodes Technologies Pvt Ltd, CIN U62099GJ2023PTC143842, Gujarat). Annexure-I #36 'Lightningnodes Technologies Private Limited | pi42'. Sahyog list #27. Sahyog: Delhi HC order 29 Apr 2025 (I4C status report 28 Apr 2025) lists the 33 VDASPs onboarded by legal entity name; entity matched to brand via LS Q5805 Annexure-I. Site: 'FIU-IND Registered VASP - REID: VA00045558'. No LE page found; grievance@pi42.com / compliance@pi42.com."
+  }
+ ]
 }

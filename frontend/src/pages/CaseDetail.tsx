@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, api, openPdf, post } from '../api/client'
+import { ApiError, api, download, openPdf, post } from '../api/client'
 import type { Candidate, CaseDetail as CaseT, CaseLinkT, Graph, Job, ReqT, TimelineEvent } from '../api/types'
 import AiPanel from '../components/AiPanel'
+import { ChainChip, ChainPath, CrossChainPanel } from '../components/CrossChain'
 import { Compare, CompareAll, ScoreBreakdown, WhatIfList } from '../components/Explain'
 import TraceGraph, { KIND_STYLE } from '../components/graph/TraceGraph'
 import RiskPanel, { RiskBadge } from '../components/RiskPanel'
+import RouteInfo from '../components/RouteInfo'
 import SankeyChart from '../components/sankey/SankeyChart'
 import Timeline from '../components/Timeline'
 import { Badge, Button, Card, ConfBar, Empty, IST, StatusBadge, addrUrl, cx, pct, short, txUrl, usd } from '../components/ui'
+import { useAuth } from '../store/auth'
 import NotFound from './NotFound'
 
 interface ReportRow { id: string; sha256: string; created_at: string }
 type Tab = 'graph' | 'sankey' | 'evidence' | 'timeline' | 'risk'
 const TABS: [Tab, string][] = [['graph', 'Fund-flow graph'], ['timeline', 'Timeline'], ['risk', 'Risk & patterns'], ['sankey', 'Value flow'], ['evidence', 'Transactions']]
-const DIR_LABEL: Record<string, string> = { forward: 'Transfer', sweep: 'Swept to exchange hot wallet', backward: 'Funding inflow (on-ramp)', bridge: 'Bridged across chains' }
+const DIR_LABEL: Record<string, string> = { forward: 'Transfer', sweep: 'Swept to exchange hot wallet', backward: 'Funding inflow (on-ramp)', bridge: 'Bridged across chains', mix: 'Entered a CoinJoin / mixer' }
+const SEND_LABEL: Record<string, string> = { sahyog: 'Send via Sahyog (mock)', sahyog_notice: 'Send via Sahyog (mock)', le_portal: 'Mark submitted via LE portal', international: 'Forward for MLAT / Interpol' }
 
 function groupLinks(links: CaseLinkT[]): CaseLinkT[][] {
   const m = new Map<string, CaseLinkT[]>()
@@ -24,6 +28,7 @@ function groupLinks(links: CaseLinkT[]): CaseLinkT[][] {
 
 export default function CaseDetail() {
   const { id } = useParams()
+  const { me } = useAuth()
   const [c, setC] = useState<CaseT | null>(null)
   const [graph, setGraph] = useState<Graph | null>(null)
   const [events, setEvents] = useState<TimelineEvent[]>([])
@@ -98,6 +103,10 @@ export default function CaseDetail() {
     setNoticeLang('en'); setDraft(await post<ReqT>(`/cases/${id}/requests`, { candidate_id: cand.id, type, consolidate }))
   })
   const send = () => act('send', async () => { if (draft) { setDraft(await post<ReqT>(`/requests/${draft.id}/send`)); await load() } })
+  const approve = () => act('approve', async () => { if (draft) setDraft(await post<ReqT>(`/requests/${draft.id}/approve`)) })
+  const exportGraph = (fmt: 'graphml' | 'cypher') => act('export', () => download(`/cases/${id}/graph/export?format=${fmt}`, `bittrail-case-${c?.case_no}.${fmt}`))
+  const chains = analysis?.chains ?? []
+  const hops = analysis?.crosschain ?? []
   const translate = () => act('tr', async () => {
     if (!draft) return
     const r = await post<{ lang: string; text: string }>(`/requests/${draft.id}/translate`, { lang: 'hi-IN' })
@@ -116,7 +125,14 @@ export default function CaseDetail() {
           <div className="mt-1 text-sm text-muted">FIR {c.fir_no} · NCRP {c.ncrp_id ?? '-'} · {c.police_station}, {c.state} · {c.fraud_type} · reported {IST(c.fraud_time)}{c.amount_inr ? ` · ₹${c.amount_inr.toLocaleString('en-IN')}` : ''}</div>
           <div className="mt-2 flex flex-wrap gap-2">{c.wallets.map((w) => (
             <a key={w.address} href={addrUrl(w.chain, w.address)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-2.5 py-1 text-xs hover:border-orange">
-              <span className="h-2 w-2 rounded-full bg-orange" /><b>{w.chain}</b><span className="addr">{w.address}</span></a>))}</div>
+              <ChainChip chain={w.chain} /><span className="addr">{w.address}</span></a>))}</div>
+          {chains.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+              <span>Trail across</span><ChainPath chains={chains} />
+              {hops.length > 0 && <Badge tone="navy">{hops.length} cross-chain hop{hops.length > 1 ? 's' : ''} via {[...new Set(hops.map((h) => h.tool ?? h.provider))].join(', ')}</Badge>}
+              {(analysis?.dust?.transfers ?? 0) > 0 && <span title="Adaptive dust filter">· {analysis!.dust!.transfers} dust transfers ignored{analysis!.dust!.poisoning ? ` (${analysis!.dust!.poisoning} address-poisoning)` : ''}</span>}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={toggleMonitor} disabled={busy === 'mon'} title="Real-time watch of the suspect, deposit and end-point wallets">
@@ -165,7 +181,11 @@ export default function CaseDetail() {
                     <Button variant="ghost" className="px-2 py-1 text-xs" disabled={step >= ordered.length - 1} onClick={() => { setPlaying(false); setStep(step + 1) }}>›</Button>
                     <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => { setPlaying(false); setStep(null) }}>Show all</Button></>}
                 </div>
-                {c.done_job?.progress && <span className="text-xs text-muted">{c.done_job.progress.nodes} addresses · {c.done_job.progress.edges} links · {c.done_job.progress.seconds}s · {usd(c.done_job.progress.seed_out_usd)} followed</span>}
+                <div className="flex flex-wrap items-center gap-2">
+                  {c.done_job?.progress && <span className="text-xs text-muted">{c.done_job.progress.nodes} addresses · {c.done_job.progress.edges} links · {c.done_job.progress.seconds}s · {usd(c.done_job.progress.seed_out_usd)} followed</span>}
+                  <Button variant="ghost" className="px-2 py-1 text-[11px]" title="GraphML for Gephi / NetworkX" onClick={() => exportGraph('graphml')}>GraphML</Button>
+                  <Button variant="ghost" className="px-2 py-1 text-[11px]" title="Cypher script for Neo4j" onClick={() => exportGraph('cypher')}>Neo4j</Button>
+                </div>
               </div>
             )}
             <div className="h-[560px]">
@@ -189,7 +209,7 @@ export default function CaseDetail() {
               <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line px-4 py-2 text-xs text-muted">
                 {Object.entries(KIND_STYLE).filter(([k]) => graph.nodes.some((n) => n.data.kind === k)).map(([k, v]) => (
                   <span key={k} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: v.color }} />{v.label}</span>))}
-                <span>· width = share of value · <span className="text-teal">dashed teal = sweep</span> · <span className="text-blue">dotted blue = on-ramp</span> · <span className="text-[#7A4FBF]">dashed purple = bridge</span></span>
+                <span>· one lane per chain · width = share of value · <span className="text-teal">dashed teal = sweep</span> · <span className="text-blue">dotted blue = on-ramp</span> · <span className="text-[#7A4FBF]">purple across lanes = cross-chain hop</span></span>
               </div>
             )}
             {selNode && tab === 'graph' && step === null && (
@@ -211,6 +231,7 @@ export default function CaseDetail() {
               </div>
             )}
           </Card>
+          <CrossChainPanel hops={hops} />
           <AiPanel caseId={c.id} analysis={analysis} />
         </div>
 
@@ -285,7 +306,7 @@ export default function CaseDetail() {
           <Card className="max-h-[90vh] w-full max-w-3xl overflow-auto p-6">
             <div onClick={(e) => e.stopPropagation()}>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="font-serif text-2xl font-bold">{draft.status === 'draft' ? 'Draft notice' : 'Sent via Sahyog'}</h2>
+                <h2 className="font-serif text-2xl font-bold">{draft.status === 'draft' ? 'Draft notice' : draft.status === 'pending_approval' ? 'Awaiting approval' : 'Notice sent'}</h2>
                 <div className="flex items-center gap-2">
                   {draft.translations['hi-IN'] && <div className="flex overflow-hidden rounded-lg border border-line text-xs">
                     {(['en', 'hi-IN'] as const).map((l) => <button key={l} onClick={() => setNoticeLang(l)} className={cx('px-2.5 py-1 font-semibold', noticeLang === l ? 'bg-navy text-white' : 'bg-card')}>{l === 'en' ? 'English' : 'हिंदी'}</button>)}
@@ -296,12 +317,25 @@ export default function CaseDetail() {
               <div className="mb-3 text-sm text-muted">To {draft.vasp_name} · {draft.legal_basis}{draft.sahyog_ref ? ` · Ref ${draft.sahyog_ref}` : ''}
                 {draft.linked_cases.length > 0 && ` · consolidated with ${draft.linked_cases.map((l) => `Case #${l.case_no}`).join(', ')}`}
                 {!draft.report_id && ' · tip: generate the evidence report first so the notice cites its hash'}</div>
+              {draft.route && (
+                <div className="mb-3 rounded-xl border border-blue/30 bg-blue-tint p-3 text-sm">
+                  <div className="mb-1 flex flex-wrap items-center gap-2"><Badge tone="blue">Route</Badge><b>{draft.route.label}</b></div>
+                  <RouteInfo route={draft.route} />
+                </div>
+              )}
+              {draft.status === 'pending_approval' && (
+                <div className="mb-3 rounded-xl border border-orange/40 bg-orange-tint p-3 text-sm text-orange-ink">
+                  <b>Officer review required.</b> The attribution confidence is below the review threshold, so an I4C analyst must approve this notice before it is sent.
+                </div>
+              )}
+              {draft.approved_by && <div className="mb-3 text-xs text-teal">Approved by {draft.approved_by}</div>}
               <pre className="whitespace-pre-wrap rounded-xl border border-line bg-paper p-4 font-sans text-sm leading-relaxed">
                 {noticeLang === 'hi-IN' && draft.translations['hi-IN'] ? draft.translations['hi-IN'] : draft.body_md.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '')}</pre>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <Button variant="ghost" onClick={translate} disabled={busy === 'tr'} title="Sarvam AI translation (sarvam-translate)">{busy === 'tr' ? 'Translating…' : 'Translate to Hindi (Sarvam AI)'}</Button>
                 <Button variant="ghost" onClick={() => setDraft(null)}>Close</Button>
-                {draft.status === 'draft' && <Button variant="teal" onClick={send} disabled={busy === 'send'}>Send via Sahyog (mock)</Button>}
+                {draft.status === 'pending_approval' && me?.role === 'analyst' && <Button variant="orange" onClick={approve} disabled={busy === 'approve'}>Approve (I4C analyst)</Button>}
+                {draft.status === 'draft' && <Button variant="teal" onClick={send} disabled={busy === 'send'}>{SEND_LABEL[draft.route?.channel ?? 'sahyog']}</Button>}
               </div>
             </div>
           </Card>
@@ -327,8 +361,9 @@ function CandidateCard({ c, rank, busy, onDraft, links, others, onCompare }: {
         <Badge tone={c.role === 'off_ramp' ? 'teal' : 'blue'}>{c.role === 'off_ramp' ? 'off-ramp' : 'on-ramp'}</Badge>
         {c.funds_status === 'at_deposit' && <Badge tone="orange">funds at deposit</Badge>}
         {c.funds_status === 'swept' && <Badge>swept to hot wallet</Badge>}
-        {c.chain !== 'tron' && <Badge>{c.chain}</Badge>}
+        <ChainChip chain={c.chain} />
       </div>
+      {(ev?.chains.length ?? 0) > 1 && <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">Cross-chain path <ChainPath chains={ev!.chains} /></div>}
       <a href={addrUrl(c.chain, c.address)} target="_blank" rel="noreferrer" className="addr mt-1 block text-xs text-blue hover:underline">{c.address}</a>
       <div className="text-xs text-muted">{c.address_kind.replace('_', ' ')} · {c.hops} hop{c.hops !== 1 ? 's' : ''} · {pct(c.value_share)} of traced value{c.value_usd ? ` (${usd(c.value_usd)})` : ''}</div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">

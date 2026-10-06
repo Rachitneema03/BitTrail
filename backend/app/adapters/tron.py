@@ -64,6 +64,8 @@ class TronAdapter:
         trc20 = await cached_get("trongrid", f"{BASE}/v1/accounts/{address}/transactions/trc20", params,
                                  self._headers(), _ttl(until))
         for i, t in enumerate(trc20.get("data", [])):
+            if t.get("type") not in (None, "Transfer"):
+                continue  # "Approval" rows (e.g. before a bridge call) move no money
             info = t.get("token_info") or {}
             contract = info.get("address")
             if contract not in TOKENS:

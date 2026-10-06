@@ -22,6 +22,28 @@
       "fraud_time": "2026-09-12T00:00:00Z",
       "amount_inr": 85000,
       "wallets": [{"address": "TD1Jp17FZd4ZbDUZc729qATqkxFBwF21WM"}]
+    },
+    {
+      "title": "Fake crypto trading app: USDT bridged Tron to Ethereum (demo)",
+      "fir_no": "DEMO-2231/2026",
+      "ncrp_id": "DEMO-NCRP-0003",
+      "police_station": "Cyber Crime Police Station, Hyderabad",
+      "state": "Telangana",
+      "fraud_type": "Investment scam",
+      "fraud_time": "2026-10-03T08:00:00Z",
+      "amount_inr": 240000,
+      "wallets": [{"address": "TFsmcL9tVmSi8ovFKD3JfJRi7jwe7BQSPF"}]
+    },
+    {
+      "title": "Digital arrest scam: Bitcoin swapped to Ethereum via THORChain (demo)",
+      "fir_no": "DEMO-3058/2026",
+      "ncrp_id": "DEMO-NCRP-0004",
+      "police_station": "Cyber Police Station, Bengaluru",
+      "state": "Karnataka",
+      "fraud_type": "Digital arrest",
+      "fraud_time": "2026-09-14T01:00:00Z",
+      "amount_inr": 410000,
+      "wallets": [{"address": "bc1qe5w3jat9gseekn8z9yq4kahr6u9a85wvvlf090"}]
     }
   ]
 }

@@ -34,6 +34,7 @@ class Transfer:
     decimals: int
     amount: float
     amount_usd: float
+    tags: tuple[str, ...] = ()  # adapter-level observations about the transaction, e.g. "coinjoin"
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -65,7 +66,8 @@ def detect_chain(address: str) -> str | None:
         return "tron"
     if EVM_RE.match(a):
         return "ethereum"
-    if BTC_RE.match(a) and len(a) <= 35:
+    # bech32 / bech32m (bc1...) are 42-62 chars; legacy base58 (1... / 3...) at most 35
+    if BTC_RE.match(a) and (a.startswith("bc1") or len(a) <= 35):
         return "bitcoin"
     if SOL_RE.match(a):
         return "solana"

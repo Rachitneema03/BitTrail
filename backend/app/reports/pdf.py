@@ -7,7 +7,8 @@ from fpdf import FPDF
 
 IST = timezone(timedelta(hours=5, minutes=30))
 EXPLORER = {"tron": "https://tronscan.org/#/transaction/", "ethereum": "https://etherscan.io/tx/",
-            "polygon": "https://polygonscan.com/tx/", "bitcoin": "https://mempool.space/tx/"}
+            "polygon": "https://polygonscan.com/tx/", "bitcoin": "https://mempool.space/tx/",
+            "bsc": "https://bscscan.com/tx/", "solana": "https://solscan.io/tx/"}
 
 
 def _t(s) -> str:
@@ -127,10 +128,36 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
                 r.multi_cell(0, 4, _t(f"  {EXPLORER.get(c['chain'], '')}{tx}"), new_x="LMARGIN", new_y="NEXT")
         r.ln(2)
 
+    xc = analysis.get("crosschain") or []
+    if xc:
+        r.heading("2a. Cross-chain hops")
+        r.para("Each hop was resolved by a public bridge / swap tracker from the deposit transaction hash (or, when "
+               "marked unconfirmed, by a same-address value-after-fee and timing match). Continuity = 0.35 x amount "
+               "similarity + 0.25 x timing + 0.3 x tracker confirmation + 0.1 x destination check.")
+        for i, h in enumerate(xc, 1):
+            r.set_font("Helvetica", "B", 9.5)
+            r.set_text_color(122, 79, 191)
+            r.multi_cell(0, 5.5, _t(f"{i}. {h['from_chain']} -> {h['to_chain']} via {h['tool']} ({h['provider']}), "
+                                    f"continuity {h['continuity']:.2f}" + ("" if h.get("confirmed", True) else " - UNCONFIRMED")),
+                         new_x="LMARGIN", new_y="NEXT")
+            c = h.get("components") or {}
+            r.kv([("Deposit (source)", f"USD {h['usd_in']:,.2f} into {h['bridge_address']} on {h['from_chain']}"),
+                  ("Release (destination)", f"USD {h['usd_out']:,.2f} to {h['to_address']} on {h['to_chain']} after "
+                                            f"{h['minutes']} min"),
+                  ("Continuity factors", f"amount {c.get('amount')}, time {c.get('time')}, tracker {c.get('bridge')}, "
+                                         f"destination {c.get('destination')}")])
+            r.set_font("Courier", "", 7)
+            r.multi_cell(0, 3.8, _t(f"  src {EXPLORER.get(h['from_chain'], '')}{h['src_tx']}\n"
+                                    f"  dst {EXPLORER.get(h['to_chain'], '')}{h['dest_tx']}"), new_x="LMARGIN", new_y="NEXT")
+            r.ln(1)
+
     r.heading("3. Risk profile and detected patterns")
     if risk:
         for ax in risk.get("axes", []):
             r.para(f"  {ax['label']}: {ax['score']}/100 - {ax['why']}")
+        for cat in risk.get("categories", []):
+            r.para(f"  HIGH-RISK EXPOSURE: {cat['label']} ({', '.join(cat.get('entities', []))}; OFAC programs "
+                   f"{', '.join(cat.get('programs', []))})", style="B", color=(180, 35, 24))
     for ty in analysis.get("typologies", []):
         r.para(f"  [{ty['severity'].upper()}] {ty['name']}: {ty['detail']}", style="B")
         if ty.get("tx"):
@@ -176,11 +203,16 @@ def render(manifest: dict, sha: str, case: dict, candidates: list[dict], nodes: 
               ("Time range (UTC)", " to ".join(integ.get("time_range") or []) or "-"),
               ("Transactions / addresses", f"{integ.get('transactions_analysed')} / {integ.get('addresses_analysed')}"),
               ("LLM used for attribution", "No")])
+    dust = analysis.get("dust") or {}
     r.para("Method: value-weighted forward trace from the suspect wallet(s) (funds after the reported fraud time), "
-        "proportional value split at each hop, labels from public sources (Dune Spellbook exchange lists, OFAC SDN), "
-        "deposit-address and exchange-cluster detection from behaviour, cross-chain continuity via a bridge tracker, "
-        "and a 2-hop backward trace for on-ramps. Mixers stop the trace. Confidence is a rule-based noisy-OR over the "
-        "factors listed per candidate. No attribution decision is made by a language model.")
+        "proportional value split at each hop, adaptive dust filter, labels from public sources (Dune Spellbook "
+        "exchange lists, OFAC SDN with sanctions programs), deposit-address and exchange-cluster detection from "
+        "behaviour, cross-chain continuation through public bridge / swap trackers (LI.FI, THORChain Midgard, deBridge, "
+        "Wormholescan) with a continuity score, and a 2-hop backward trace for on-ramps. Mixers and equal-output "
+        "CoinJoins stop the trace. Confidence is a rule-based noisy-OR over the factors listed per candidate. "
+        "No attribution decision is made by a language model."
+        + (f" Dust filtered: {dust.get('transfers', 0)} transfers (USD {dust.get('usd', 0):,.2f}), of which "
+           f"{dust.get('poisoning', 0)} look like address-poisoning dust." if dust.get("transfers") else ""))
     r.para("Integrity: the canonical JSON manifest of this report (case, parameters, chain heights, every edge with "
         "transaction hashes, and candidates) hashes to the SHA-256 printed in every page footer. Recomputing the "
         "hash over the manifest (sorted keys, no whitespace, UTF-8) must reproduce it exactly.")

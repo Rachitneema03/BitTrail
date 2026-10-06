@@ -1,0 +1,174 @@
+{
+ "run_at": "2026-10-06T15:16:49.987594+00:00",
+ "cases": [
+  {
+   "case": "Fake trading app: USDT investment scam (demo)",
+   "seed_chain": "tron",
+   "cold": {
+    "seconds": 42.1,
+    "addresses": 6,
+    "links": 5,
+    "transactions": 67,
+    "chains": [
+     "tron"
+    ],
+    "cross_chain_hops": 0,
+    "top_vasp": "CoinDCX",
+    "confidence": 0.96,
+    "hops": 2
+   },
+   "warm": {
+    "seconds": 0.1,
+    "addresses": 6,
+    "links": 5,
+    "transactions": 67,
+    "chains": [
+     "tron"
+    ],
+    "cross_chain_hops": 0,
+    "top_vasp": "CoinDCX",
+    "confidence": 0.96,
+    "hops": 2
+   }
+  },
+  {
+   "case": "Task-based part-time job scam (demo)",
+   "seed_chain": "tron",
+   "cold": {
+    "seconds": 10.5,
+    "addresses": 5,
+    "links": 4,
+    "transactions": 61,
+    "chains": [
+     "tron"
+    ],
+    "cross_chain_hops": 0,
+    "top_vasp": "CoinDCX",
+    "confidence": 0.96,
+    "hops": 1
+   },
+   "warm": {
+    "seconds": 0.0,
+    "addresses": 5,
+    "links": 4,
+    "transactions": 61,
+    "chains": [
+     "tron"
+    ],
+    "cross_chain_hops": 0,
+    "top_vasp": "CoinDCX",
+    "confidence": 0.96,
+    "hops": 1
+   }
+  },
+  {
+   "case": "Fake crypto trading app: USDT bridged Tron to Ethereum (demo)",
+   "seed_chain": "tron",
+   "cold": {
+    "seconds": 8.8,
+    "addresses": 10,
+    "links": 9,
+    "transactions": 28,
+    "chains": [
+     "tron",
+     "ethereum"
+    ],
+    "cross_chain_hops": 1,
+    "top_vasp": "KuCoin",
+    "confidence": 0.96,
+    "hops": 3
+   },
+   "warm": {
+    "seconds": 0.1,
+    "addresses": 10,
+    "links": 9,
+    "transactions": 28,
+    "chains": [
+     "tron",
+     "ethereum"
+    ],
+    "cross_chain_hops": 1,
+    "top_vasp": "KuCoin",
+    "confidence": 0.96,
+    "hops": 3
+   }
+  },
+  {
+   "case": "Digital arrest scam: Bitcoin swapped to Ethereum via THORChain (demo)",
+   "seed_chain": "bitcoin",
+   "cold": {
+    "seconds": 118.9,
+    "addresses": 44,
+    "links": 55,
+    "transactions": 173,
+    "chains": [
+     "bitcoin",
+     "ethereum"
+    ],
+    "cross_chain_hops": 7,
+    "top_vasp": "Bybit",
+    "confidence": 0.94,
+    "hops": 3
+   },
+   "warm": {
+    "seconds": 0.7,
+    "addresses": 44,
+    "links": 55,
+    "transactions": 173,
+    "chains": [
+     "bitcoin",
+     "ethereum"
+    ],
+    "cross_chain_hops": 7,
+    "top_vasp": "Bybit",
+    "confidence": 0.94,
+    "hops": 3
+   }
+  }
+ ],
+ "depth_sweep": [
+  {
+   "depth": 1,
+   "addresses": 13,
+   "forward_addresses": 7,
+   "links": 14,
+   "seconds": 1.1,
+   "fanout_bound_one_chain": 6
+  },
+  {
+   "depth": 2,
+   "addresses": 18,
+   "forward_addresses": 12,
+   "links": 20,
+   "seconds": 0.1,
+   "fanout_bound_one_chain": 31
+  },
+  {
+   "depth": 3,
+   "addresses": 27,
+   "forward_addresses": 21,
+   "links": 31,
+   "seconds": 0.2,
+   "fanout_bound_one_chain": 156
+  },
+  {
+   "depth": 4,
+   "addresses": 33,
+   "forward_addresses": 27,
+   "links": 43,
+   "seconds": 0.7,
+   "fanout_bound_one_chain": 781
+  },
+  {
+   "depth": 5,
+   "addresses": 44,
+   "forward_addresses": 38,
+   "links": 55,
+   "seconds": 0.7,
+   "fanout_bound_one_chain": 3906
+  }
+ ],
+ "median_cold_seconds": 26.3,
+ "median_warm_seconds": 0.1,
+ "max_cold_seconds": 118.9
+}

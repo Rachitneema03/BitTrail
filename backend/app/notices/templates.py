@@ -9,7 +9,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 TEMPLATE = """\
 **NOTICE UNDER {{ basis }}**
-*(Sent via Sahyog Portal, I4C, MHA)*
+*({{ via }})*
 
 To: {{ contact }}
 {{ vasp }}
@@ -32,7 +32,7 @@ Date: {{ date }}
 {% if freeze %}
 3. **Freeze request.** As the funds are proceeds of crime, you are requested to immediately freeze / debit-freeze the virtual digital assets held in the said account(s) and associated with the above address(es), and not permit any withdrawal pending further orders{% if freeze_basis %}, in terms of {{ freeze_basis }}{% endif %}. Please confirm the amount frozen.
 {% endif %}
-{{ "4" if freeze else "3" }}. Evidence summary: {{ hops }} hop(s) from suspect wallet `{{ suspect }}`; {{ share }} of traced value; confidence {{ confidence }}. Key transactions:
+{{ "4" if freeze else "3" }}. Evidence summary: {{ hops }} hop(s) from suspect wallet `{{ suspect }}`; {{ share }} of traced value; confidence {{ confidence }}.{% if crosschain %} The funds crossed blockchains on the way ({{ crosschain }}); the bridge transactions on both chains are listed in the attached report.{% endif %} Key transactions:
 {% for tx in evidence %}
    - `{{ tx }}`
 {%- endfor %}
@@ -54,9 +54,15 @@ env = Environment(undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=Tru
 _tpl = env.from_string(TEMPLATE)
 
 
+VIA = {"sahyog": "Sent via Sahyog Portal, I4C, MHA", "sahyog_notice": "Sent via Sahyog Portal, I4C, MHA",
+       "le_portal": "Submitted through the VASP's law-enforcement request portal",
+       "international": "For transmission through MHA (MLAT) / CBI (Interpol)"}
+
+
 def render_notice(*, req_type: str, case, candidate, officer: str, contact: str, suspect: str, sha: str | None,
-                  linked: list | None = None) -> tuple[str, str]:
+                  linked: list | None = None, route: dict | None = None) -> tuple[str, str]:
     freeze = req_type in ("freeze", "disclosure_and_freeze")
+    chains = ((candidate.explain or {}).get("evidence") or {}).get("chains") or []
     basis = "SECTION 94, BHARATIYA NAGARIK SURAKSHA SANHITA, 2023" + (" READ WITH SECTION 106" if freeze else "")
     subject = {"disclosure": "Request for disclosure of account information",
                "freeze": "Request to freeze virtual digital assets",
@@ -69,6 +75,7 @@ def render_notice(*, req_type: str, case, candidate, officer: str, contact: str,
         sha=sha, role=candidate.role, chain=candidate.chain, addresses=[candidate.address], freeze=freeze,
         freeze_basis="Section 106 BNSS" if freeze else None, hops=candidate.hops, suspect=suspect,
         share=f"{candidate.value_share:.0%}", confidence=f"{candidate.confidence:.2f}", evidence=candidate.evidence_tx[:6],
-        linked=linked or [])
+        linked=linked or [], via=VIA.get((route or {}).get("channel"), VIA["sahyog"]),
+        crosschain=" -> ".join(c.capitalize() for c in chains) if len(chains) > 1 else "")
     legal = "Section 94 BNSS" + (" r/w Section 106 BNSS" if freeze else "")
     return body, legal

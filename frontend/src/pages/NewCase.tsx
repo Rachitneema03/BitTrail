@@ -60,6 +60,7 @@ export default function NewCase() {
             </div>
           ))}
           <button type="button" className="text-sm font-semibold text-blue" onClick={() => setWallets([...wallets, { address: '', chain: '' }])}>+ Add wallet</button>
+          <p className="mt-3 text-xs text-muted">Multi-chain: an EVM (0x…) address is traced on Ethereum, Polygon and BNB Chain wherever it is active. When funds enter a bridge or cross-chain swap (LI.FI, THORChain, deBridge, Wormhole), the trail continues on the destination chain automatically.</p>
         </Card>
         {err && <div className="text-sm text-red">{err}</div>}
         <div><Button variant="orange" disabled={busy} className="px-6 py-2.5">{busy ? 'Creating…' : 'Create case and start trace'}</Button></div>

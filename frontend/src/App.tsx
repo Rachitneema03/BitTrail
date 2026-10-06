@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Alerts from './pages/Alerts'
+import Audit from './pages/Audit'
 import CaseDetail from './pages/CaseDetail'
 import Cases from './pages/Cases'
 import Dashboard from './pages/Dashboard'
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/cases/:id" element={<Guard><CaseDetail /></Guard>} />
             <Route path="/requests" element={<Guard><Requests /></Guard>} />
             <Route path="/alerts" element={<Guard><Alerts /></Guard>} />
+            <Route path="/audit" element={<Guard><Audit /></Guard>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

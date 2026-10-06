@@ -4,7 +4,7 @@ from __future__ import annotations
 import csv
 import json
 
-from sqlalchemy import func, insert, select
+from sqlalchemy import delete, func, insert, select
 
 from ..config import BACKEND_DIR
 from ..db import SessionLocal
@@ -47,7 +47,7 @@ def seed_registry(db) -> None:
         if v is None:
             v = Vasp(name=r["name"])
             db.add(v)
-        for k in ("kind", "country", "fiu_ind_registered", "on_sahyog", "le_portal_url", "nodal_contact", "status_source"):
+        for k in ("kind", "country", "fiu_ind_registered", "on_sahyog", "le_portal_url", "nodal_contact", "status_source", "notes"):
             if k in r:
                 setattr(v, k, r[k])
         if not v.nodal_contact:
@@ -71,6 +71,10 @@ def seed_labels(db) -> int:
     unique: dict[tuple, dict] = {}
     for r in rows:
         unique.setdefault((r["chain"], r["address"], r["type"], r["source"]), r)
+    # upgrade: OFAC rows from the old plain-address mirror carry no entity / programs: replace them with the SDN rows
+    if db.execute(select(Label.id).where(Label.source == "ofac", Label.entity_name == "OFAC SDN").limit(1)).first():
+        db.execute(delete(Label).where(Label.source == "ofac"))
+        db.commit()
     seeded = db.execute(select(func.count(Label.id)).where(Label.source != "vasp_confirmation")).scalar() or 0
     if seeded >= len(unique):
         return 0

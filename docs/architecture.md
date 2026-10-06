@@ -250,13 +250,13 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 | Database | **Supabase Postgres**, via the IPv4 **session pooler** (`aws-0-<region>.pooler.supabase.com:5432`) | The direct host is IPv6-only; the transaction pooler (`:6543`) is also supported (prepared statements disabled automatically). |
 | Local | `uvicorn` + `npm run dev` (SQLite if `DATABASE_URL` unset) or `docker compose up` | `DEMO_MODE=true` = cache-only, fully offline |
 
-**Environment:** `DATABASE_URL`, `JWT_SECRET`, `TRONGRID_API_KEY` (optional), `ETHERSCAN_API_KEY` (enables ETH/Polygon), `DEMO_MODE`, `TRACE_*`, `WATCH_INTERVAL_SECONDS`, `CORS_ORIGINS`, `FRONTEND_DIST`. Prices come from Binance public daily klines (cached), with no key needed.
+**Environment:** `DATABASE_URL`, `JWT_SECRET`, `TRONGRID_API_KEY` (optional), `ETHERSCAN_API_KEY` (optional: ETH/Polygon fall back to Blockscout), `ETHERSCAN_BSC` / `BSC_API_BASE` (BNB Chain), `SOLANA_RPC_URL`, `BRIDGE_TRACKER`, `CROSSCHAIN_PROVIDERS`, `THORCHAIN_MIDGARD_URL`, `NEO4J_URI` (optional), `SARVAM_API_KEY` (optional), `DEMO_MODE`, `TRACE_*`, `WATCH_INTERVAL_SECONDS`, `CORS_ORIGINS`, `FRONTEND_DIST`. Prices come from Binance public daily klines (cached), with no key needed.
 
 ## 10. Technology choices
 
 | Choice | Why | Revisit when |
 |---|---|---|
-| NetworkX in memory, not Neo4j | Traces are small and bounded; no extra infrastructure | Cross-case graph analytics at scale |
+| NetworkX in memory; Neo4j as an optional mirror / export | Traces are small and bounded; no extra infrastructure by default | Cross-case graph analytics at scale (set `NEO4J_URI`) |
 | Background tasks, not Celery | One process, simple deploy | More than a few concurrent traces |
 | PostgreSQL for everything | Relational cases + JSONB for raw data | Bulk history (ClickHouse / BigQuery) |
 | Rules before ML | Explainable, fast to build, defensible in court | Once enough verified labels exist → GraphSAGE |
@@ -287,3 +287,25 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 | Sarvam AI | `POST /cases/{id}/narrative` (en-IN / hi-IN; template fallback), `POST /cases/{id}/ask`, `POST /requests/{id}/translate`, `GET /ai/status`. Prompts contain only `llm.case_facts()`; outputs labelled AI-written; every call audited. | `llm.py`, `routers/insights.py` |
 | Migrations | `db.add_missing_columns()` adds new nullable columns on existing databases at startup | `db.py` |
 | Accuracy test | Label-ablation hide-and-seek on live Tron data | `scripts/eval_hide_and_seek.py` → `docs/eval.md` |
+
+## 13. v0.3 additions (multi-chain and cross-chain by default)
+
+| Area | What | Where |
+|---|---|---|
+| Keyless chains | Ethereum / Polygon fall back to the Blockscout public API (Etherscan-compatible) when `ETHERSCAN_API_KEY` is unset. Tron (TronGrid), Bitcoin (mempool.space), Solana (public RPC) need no key. BNB Chain needs a paid Etherscan key (`ETHERSCAN_BSC=1`) or `BSC_API_BASE`: free BNB RPCs refuse historical log queries. `GET /health` → `chain_sources` says which source each chain uses. | `adapters/evm.py`, `adapters/__init__.chain_status` |
+| Multi-chain seeds | An EVM suspect address is probed on every EVM chain; each chain where it sent funds after the fraud becomes a seed. Seeds are weighted by what they sent (not split equally). | `engine/trace._expand_seeds` |
+| Cross-chain resolver | By source tx hash: LI.FI status (Tron 728126428, Bitcoin 20000000000001, EVM, Solana), THORChain Midgard (`THORCHAIN_MIDGARD_URL`), deBridge DLN, Wormholescan. Providers per source chain run concurrently; 404 "unknown tx" answers are cached (`cached_get(ok_status=...)`). | `adapters/bridges.py` |
+| Proactive bridge detection | Every new unlabelled recipient carrying ≥ 1% of traced value (`crosschain_probe.min_share`) is checked against the trackers before its own outflow is followed, so bridge vaults (THORChain), deposit addresses (Layerswap) and routers that look like wallets are not followed into other people's money. A hit turns the node into `bridge` / `swap_service` (label source `bridge_tracker:<provider>`, tier `published`). Service-like and "holds funds" wallets are re-checked after classification. | `engine/trace._probe`, `_cross_chain` |
+| Unconfirmed fallback | For labelled bridges with no tracker record only: same EVM address on another EVM chain receiving the value less ≤ 3% within 6 h → hop with `confirmed=false` (continuity ≤ 0.7) | `bridges.same_address_match` |
+| Swap services | New kind `swap_service` (THORChain etc.): treated like a bridge for path factor, typologies and graph | `classify.py`, `score.py`, `typology.py` |
+| Adaptive dust filter | Per wallet, ignore transfers below `max(TRACE_MIN_USD, 0.5% × value reaching it)` (cap $1,000); sub-$1 transfers counted as address-poisoning; if the ignored transfers carry ≥ 20% of outflow the floor drops back (structuring flag) | `engine/trace._dust_floor`, `heuristics.yaml: dust` |
+| CoinJoin | Bitcoin txs with ≥ 5 inputs and ≥ 5 equal outputs (≥ 40% of outputs) are tagged `coinjoin` by the adapter; the engine adds a `mixer` node (`heuristic:coinjoin`) and stops | `adapters/btc.is_coinjoin`, `trace._coinjoin` |
+| Risk categories | OFAC labels now come from the official SDN XML with entity name and programs; programs map to plain categories (CYBER → cybercrime / ransomware, SDGT / FTO → terrorism financing, DPRK, narcotics, TCO, sanctions evasion, Iran, darknet market by SDN name). A critical category sets risk level critical and raises a `high_risk_wallet` alert. | `labels/risk.py`, `scripts/fetch_label_sources.py` |
+| Parallel fetch | The HTTP rate-limit lock spaces request starts only; each BFS level, the backward trace and Solana transaction parsing fetch concurrently | `adapters/http.py`, `trace._prefetch` |
+| Routing | `labels/registry.route()`: Sahyog (onboarded) → Sahyog notice to the nodal officer (FIU-IND registered) → the VASP's LE portal → MLAT (MHA) / Interpol (CBI). Registry rebuilt from cited sources (Lok Sabha Q.5805 annexure, Delhi HC order of 29 Apr 2025, exchanges' LE pages). Stored on `Request.route`; the notice header follows the channel. | `labels/registry.py`, `data/vasp_registry.json` |
+| Officer review | An IO's request on a candidate with confidence < 0.7 (`requests.approval_below_confidence`) is `pending_approval` until an analyst calls `POST /requests/{id}/approve` | `routers/requests.py` |
+| RAG | "Ask this case" = BM25 over passages built from the case's own computed evidence (candidates, addresses + reasons, transfers, cross-chain hops, risk, patterns, links, requests, alerts) plus `data/kb.md` (law / method notes). Sarvam answers from the top passages with [n] citations; without a key the passages themselves are returned. | `rag.py`, `POST /cases/{id}/ask` |
+| Live alerts | `GET /alerts/stream?token=` (server-sent events) pushes new alerts within ~2 s; watch poller every 120 s | `routers/misc.alert_stream`, `Layout.tsx` |
+| Audit | `GET /audit` and `GET /audit/verify` (analyst only) recompute the SHA-256 chain | `routers/misc.py`, `pages/Audit.tsx` |
+| Graph export / Neo4j | `GET /cases/{id}/graph/export?format=graphml|cypher|json`; optional mirror into Neo4j after each trace when `NEO4J_URI` is set (Postgres stays the system of record) | `graphstore.py` |
+| UI | Graph swimlanes (one lane per chain, bridge hops cross lanes, labelled with tool + continuity); cross-chain hop panel with continuity breakdown; chain chips; multi-chain coverage on the dashboard | `TraceGraph.tsx`, `CrossChain.tsx` |

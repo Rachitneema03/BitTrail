@@ -8,6 +8,7 @@ Each address query reads up to MAX_SIGS recent signatures in the time window (on
 """
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -127,10 +128,10 @@ class SolanaAdapter:
 
     async def get_transfers(self, address, direction, since, until, limit=200):
         out: list[Transfer] = []
-        for s in await self._all_signatures(address, since, until):
-            try:
-                parsed = await self._parse(s["signature"])
-            except AdapterUnavailable:
+        sigs = await self._all_signatures(address, since, until)
+        results = await asyncio.gather(*(self._parse(s["signature"]) for s in sigs), return_exceptions=True)
+        for parsed in results:
+            if isinstance(parsed, BaseException):
                 continue  # one throttled / missing transaction must not sink the whole query
             for t in parsed:
                 if (direction == "out" and t.from_address == address) or (direction == "in" and t.to_address == address):

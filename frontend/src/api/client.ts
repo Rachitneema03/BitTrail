@@ -30,6 +30,20 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const post = <T,>(path: string, body?: unknown) => api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) })
 
+/** Download an authenticated file (graph exports). */
+export async function download(path: string, filename: string) {
+  const r = await fetch(BASE + path, { headers: { Authorization: `Bearer ${getToken()}` } })
+  if (!r.ok) throw new ApiError(r.status, 'Download failed')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(await r.blob())
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+/** Server-sent events URL (EventSource cannot send headers, so the token rides in the query). */
+export const streamUrl = (path: string) => `${BASE}${path}?token=${encodeURIComponent(getToken() ?? '')}`
+
 /** Open an authenticated PDF in a new tab. */
 export async function openPdf(reportId: string) {
   const r = await fetch(`${BASE}/reports/${reportId}.pdf`, { headers: { Authorization: `Bearer ${getToken()}` } })

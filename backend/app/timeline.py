@@ -8,7 +8,7 @@ from .engine.classify import short
 from .models import Alert, Case, Report, Request, TraceEdge, TraceJob, TraceNode, VaspReply
 
 DIRECTION_TITLE = {"forward": "Transfer", "sweep": "Swept to exchange hot wallet", "backward": "Funding inflow (on-ramp)",
-                   "bridge": "Bridged across chains"}
+                   "bridge": "Bridged across chains", "mix": "Entered a CoinJoin / mixer (trail stops)"}
 
 
 def build_timeline(db: Session, case: Case, limit_onchain: int = 200) -> list[dict]:

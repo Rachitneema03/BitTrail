@@ -45,4 +45,5 @@ def build_manifest(db: Session, case: Case, job: TraceJob) -> dict:
                         "evidence_tx": c.evidence_tx} for c in cands],
         "risk": a.get("risk"),
         "typologies": a.get("typologies"),
+        "crosschain": a.get("crosschain") or [],
     }

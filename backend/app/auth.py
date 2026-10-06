@@ -49,17 +49,21 @@ def seed_users(db: Session) -> None:
     db.commit()
 
 
-def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
-    if creds is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+def user_from_token(token: str, db: Session) -> User:
     try:
-        payload = jwt.decode(creds.credentials, settings().jwt_secret, algorithms=["HS256"])
+        payload = jwt.decode(token, settings().jwt_secret, algorithms=["HS256"])
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
     user = db.get(User, payload["sub"])
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Unknown user")
     return user
+
+
+def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
+    if creds is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+    return user_from_token(creds.credentials, db)
 
 
 def require(*roles: str):
