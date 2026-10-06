@@ -25,9 +25,6 @@ class Settings(BaseSettings):
     bridge_tracker: bool = True   # resolve cross-chain destinations via public bridge / swap trackers
     crosschain_providers: str = "lifi,thorchain,debridge,wormhole"
     thorchain_midgard_url: str = "https://gateway.liquify.com/chain/thorchain_midgard/v2"
-    neo4j_uri: str = ""           # optional: mirror every trace graph into Neo4j (bolt://...)
-    neo4j_user: str = "neo4j"
-    neo4j_password: str = ""
 
     # Sarvam AI (optional): narrates evidence, answers questions, translates. Never used for attribution.
     sarvam_api_key: str = ""

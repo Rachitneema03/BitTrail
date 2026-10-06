@@ -8,7 +8,6 @@ import time
 
 from sqlalchemy import delete, func, select
 
-from . import graphstore
 from .adapters import AdapterUnavailable, get_adapter, provider_label
 from .adapters import bridges
 from .alert_rules import get_rules, level_at_least
@@ -188,11 +187,6 @@ async def run_job(job_id: str) -> None:
                    "chains": analysis["chains"], "cross_chain_hops": len(res.crosschain),
                    "risk": analysis["risk"]["level"], "ruleset_sha256": analysis["integrity"]["ruleset_sha256"]})
             db.commit()
-            if settings().neo4j_uri:
-                note = await graphstore.mirror(case, *graphstore.load(db, job))
-                if note:
-                    job.progress = {**job.progress, "notes": [*job.progress.get("notes", []), note]}
-                    db.commit()
     except Exception as e:  # noqa: BLE001
         log.exception("trace job failed")
         with SessionLocal() as db:

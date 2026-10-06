@@ -35,7 +35,7 @@
 8. **Monitoring:** watch-list on suspect, deposit and end-point wallets; configurable alerts; timeline + investigation replay.
 9. **Sarvam AI (optional):** case summary (English/Hindi), "Ask this case", Hindi notice translation — from computed evidence only.
 
-**Not in the MVP:** real Sahyog integration, graph neural networks, on-prem LLM. (Neo4j is an optional export / mirror only; Postgres + NetworkX stay the system of record.)
+**Not in the MVP:** real Sahyog integration, graph neural networks, Neo4j, on-prem LLM.
 
 ## Non-negotiable principles
 
@@ -78,7 +78,6 @@
 | LLM (narration only) | Sarvam AI | `SARVAM_API_KEY` |
 | Sanctioned addresses + risk category | OFAC SDN official XML (entity + program: CYBER, SDGT/FTO, DPRK, ...) | — |
 | VASP registry (FIU-IND, Sahyog status, LE channel) | `backend/data/vasp_registry.json`, every value cited (Lok Sabha Q.5805 annexure, Delhi HC order 29 Apr 2025, exchanges' LE pages) | — |
-| Graph mirror (optional) | Neo4j | `NEO4J_URI` |
 
 Known constraint: Etherscan's free tier no longer covers BNB Chain, Base or Optimism, and free BNB RPCs refuse historical log queries, so BNB Chain is the one chain that needs a paid key.
 
@@ -172,7 +171,7 @@ bittrail/                  (repo root = this folder)
 - [x] Prototype v0.1: phases 1–6 built. Tron / BTC live (ETH / Polygon need `ETHERSCAN_API_KEY`), engine + unit tests, full UI, reports, notices, mock Sahyog + VASP inbox, flywheel, cross-case links, watch poller, Supabase, Dockerfile / Railway config
 - [x] Verified: `pytest` (6 pass) and `scripts/smoke_test.py` pass on SQLite and on Supabase; UI walkthrough in Edge with no browser errors
 - [x] v0.2: explainable scoring (factor points, why-A-not-B, what-if), history factor, exchange-cluster rule, BNB Chain + Solana adapters, LI.FI bridge continuity, typologies + six-axis risk, timeline + replay, configurable alerts + per-case monitoring, consolidated requests, PDF upgrade (timeline, score calc, patterns, integrity), Sarvam AI (summary, ask, Hindi translation), accuracy test (`docs/eval.md`). 13 tests pass; smoke test passes.
-- [x] v0.3 (team asked for everything in the idea deck): keyless Ethereum / Polygon (Blockscout), multi-chain EVM seeds, cross-chain resolution via LI.FI (Tron, BTC, EVM, Solana) + THORChain + deBridge + Wormhole with proactive bridge-vault detection, adaptive dust filter, CoinJoin stop, OFAC risk categories (ransomware / terror financing / DPRK ...), cited VASP routing (Sahyog / LE portal / MLAT) with analyst approval for low-confidence notices, BM25 RAG for "Ask this case" (works without Sarvam), live alerts (SSE), audit viewer + hash-chain verify, GraphML / Cypher export + optional Neo4j mirror, chain swimlane graph. 22 tests pass. See docs/architecture.md §13.
+- [x] v0.3 (team asked for everything in the idea deck): keyless Ethereum / Polygon (Blockscout), multi-chain EVM seeds, cross-chain resolution via LI.FI (Tron, BTC, EVM, Solana) + THORChain + deBridge + Wormhole with proactive bridge-vault detection, adaptive dust filter, CoinJoin stop, OFAC risk categories (ransomware / terror financing / DPRK ...), cited VASP routing (Sahyog / LE portal / MLAT) with analyst approval for low-confidence notices, BM25 RAG for "Ask this case" (works without Sarvam), live alerts (SSE), audit viewer + hash-chain verify, GraphML export (NetworkX), chain swimlane graph. 22 tests pass. See docs/architecture.md §13.
 - [ ] Not yet: hosted deployment (needs your Railway account), BNB Chain history without a paid key, Docker build tested (Docker isn't installed on the dev machine)
 
 **Demo cases** (`backend/data/demo_cases.json`): real Tron wallets `TKxQN5i…` (Case 1) and `TD1Jp17…` (Case 2) both reach CoinDCX deposit `TADSuFLf…` → linked. Case 3: Tron `TFsmcL9…` → LI.FI (Layerswap) → Ethereum → KuCoin deposit `0xe2097868…` (sweeps into 3 KuCoin hot wallets). Case 4: Bitcoin `bc1qe5w3…` → THORChain (7 swaps) → Ethereum → Bybit deposit `0x911fe8d6…`. Case metadata is fictional.

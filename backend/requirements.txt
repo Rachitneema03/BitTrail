@@ -11,4 +11,3 @@ fpdf2==2.8.2
 pyjwt==2.10.1
 jinja2==3.1.5
 pytest==8.3.4
-neo4j>=5.20  # optional: only used when NEO4J_URI is set

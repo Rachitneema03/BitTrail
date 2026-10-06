@@ -134,17 +134,18 @@ Deferred to slides: EVM/BTC, backward trace, cross-case, alerts, flywheel.
 
 ## After the MVP (finale / pilot roadmap)
 
-v0.3 (Oct 2026) pulled parts of P8, P9 and P11 forward at the team's request, so the prototype shows everything
-the idea deck claims: keyless Ethereum / Polygon (Blockscout), multi-chain seeds, bridge / swap resolution through
-LI.FI, THORChain Midgard, deBridge and Wormholescan, an unconfirmed same-address fallback, and Neo4j export / optional
-mirror. Still open below: BNB Chain without a paid key, Arbitrum / Base, ML, worker queue, bulk history.
+v0.3 (Oct 2026) pulled parts of P8 and P9 forward at the team's request, so the prototype shows everything the idea
+deck claims: keyless Ethereum / Polygon (Blockscout), multi-chain seeds, bridge / swap resolution through LI.FI,
+THORChain Midgard, deBridge and Wormholescan, and an unconfirmed same-address fallback. The graph stays NetworkX in
+memory (team decision: no Neo4j). Still open below: BNB Chain without a paid key, Arbitrum / Base, ML, worker queue,
+bulk history.
 
 | Phase | Adds |
 |---|---|
 | P8 — More chains | ~~Solana~~ (done; Helius via `SOLANA_RPC_URL`), BNB Chain without a paid key (BSCTrace / NodeReal), Arbitrum/Base via EVM adapter |
 | P9 — Cross-chain | ~~Bridge decoding (LI.FI status, Wormholescan, THORChain Midgard, deBridge)~~ (done in v0.3); instant-exchanger (FixedFloat / ChangeNOW) labels; amount/time matching beyond same-address |
 | P10 — ML | GraphSAGE on Elliptic++ / BABD-13 + verified flywheel labels as an extra scoring signal |
-| P11 — Scale | ~~Neo4j for the cross-case graph~~ (export + optional mirror in v0.3); worker queue (Celery / Arq); ClickHouse / BigQuery for bulk history |
+| P11 — Scale | Neo4j for the cross-case graph; worker queue (Celery / Arq); ClickHouse / BigQuery for bulk history |
 | P12 — Integration | Real Sahyog API, I4C Suspect Registry push, Samanvaya linkage, SSO |
 | P13 — Deployment | On-prem at I4C / NIC; local LLM via vLLM; security audit |
 

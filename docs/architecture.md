@@ -250,13 +250,13 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 | Database | **Supabase Postgres**, via the IPv4 **session pooler** (`aws-0-<region>.pooler.supabase.com:5432`) | The direct host is IPv6-only; the transaction pooler (`:6543`) is also supported (prepared statements disabled automatically). |
 | Local | `uvicorn` + `npm run dev` (SQLite if `DATABASE_URL` unset) or `docker compose up` | `DEMO_MODE=true` = cache-only, fully offline |
 
-**Environment:** `DATABASE_URL`, `JWT_SECRET`, `TRONGRID_API_KEY` (optional), `ETHERSCAN_API_KEY` (optional: ETH/Polygon fall back to Blockscout), `ETHERSCAN_BSC` / `BSC_API_BASE` (BNB Chain), `SOLANA_RPC_URL`, `BRIDGE_TRACKER`, `CROSSCHAIN_PROVIDERS`, `THORCHAIN_MIDGARD_URL`, `NEO4J_URI` (optional), `SARVAM_API_KEY` (optional), `DEMO_MODE`, `TRACE_*`, `WATCH_INTERVAL_SECONDS`, `CORS_ORIGINS`, `FRONTEND_DIST`. Prices come from Binance public daily klines (cached), with no key needed.
+**Environment:** `DATABASE_URL`, `JWT_SECRET`, `TRONGRID_API_KEY` (optional), `ETHERSCAN_API_KEY` (optional: ETH/Polygon fall back to Blockscout), `ETHERSCAN_BSC` / `BSC_API_BASE` (BNB Chain), `SOLANA_RPC_URL`, `BRIDGE_TRACKER`, `CROSSCHAIN_PROVIDERS`, `THORCHAIN_MIDGARD_URL`, `SARVAM_API_KEY` (optional), `DEMO_MODE`, `TRACE_*`, `WATCH_INTERVAL_SECONDS`, `CORS_ORIGINS`, `FRONTEND_DIST`. Prices come from Binance public daily klines (cached), with no key needed.
 
 ## 10. Technology choices
 
 | Choice | Why | Revisit when |
 |---|---|---|
-| NetworkX in memory; Neo4j as an optional mirror / export | Traces are small and bounded; no extra infrastructure by default | Cross-case graph analytics at scale (set `NEO4J_URI`) |
+| NetworkX in memory, not Neo4j | Traces are small and bounded; no extra infrastructure | Cross-case graph analytics at scale |
 | Background tasks, not Celery | One process, simple deploy | More than a few concurrent traces |
 | PostgreSQL for everything | Relational cases + JSONB for raw data | Bulk history (ClickHouse / BigQuery) |
 | Rules before ML | Explainable, fast to build, defensible in court | Once enough verified labels exist → GraphSAGE |
@@ -307,5 +307,5 @@ Schema is created with `create_all` on startup (no Alembic migrations in v0.1). 
 | RAG | "Ask this case" = BM25 over passages built from the case's own computed evidence (candidates, addresses + reasons, transfers, cross-chain hops, risk, patterns, links, requests, alerts) plus `data/kb.md` (law / method notes). Sarvam answers from the top passages with [n] citations; without a key the passages themselves are returned. | `rag.py`, `POST /cases/{id}/ask` |
 | Live alerts | `GET /alerts/stream?token=` (server-sent events) pushes new alerts within ~2 s; watch poller every 120 s | `routers/misc.alert_stream`, `Layout.tsx` |
 | Audit | `GET /audit` and `GET /audit/verify` (analyst only) recompute the SHA-256 chain | `routers/misc.py`, `pages/Audit.tsx` |
-| Graph export / Neo4j | `GET /cases/{id}/graph/export?format=graphml|cypher|json`; optional mirror into Neo4j after each trace when `NEO4J_URI` is set (Postgres stays the system of record) | `graphstore.py` |
+| Graph export | `GET /cases/{id}/graph/export?format=graphml|json`: the trace as a NetworkX graph written to GraphML (Gephi / yEd / NetworkX). No graph database. | `graphstore.py` |
 | UI | Graph swimlanes (one lane per chain, bridge hops cross lanes, labelled with tool + continuity); cross-chain hop panel with continuity breakdown; chain chips; multi-chain coverage on the dashboard | `TraceGraph.tsx`, `CrossChain.tsx` |

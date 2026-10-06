@@ -104,7 +104,7 @@ export default function CaseDetail() {
   })
   const send = () => act('send', async () => { if (draft) { setDraft(await post<ReqT>(`/requests/${draft.id}/send`)); await load() } })
   const approve = () => act('approve', async () => { if (draft) setDraft(await post<ReqT>(`/requests/${draft.id}/approve`)) })
-  const exportGraph = (fmt: 'graphml' | 'cypher') => act('export', () => download(`/cases/${id}/graph/export?format=${fmt}`, `bittrail-case-${c?.case_no}.${fmt}`))
+  const exportGraph = () => act('export', () => download(`/cases/${id}/graph/export?format=graphml`, `bittrail-case-${c?.case_no}.graphml`))
   const chains = analysis?.chains ?? []
   const hops = analysis?.crosschain ?? []
   const translate = () => act('tr', async () => {
@@ -183,8 +183,7 @@ export default function CaseDetail() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {c.done_job?.progress && <span className="text-xs text-muted">{c.done_job.progress.nodes} addresses · {c.done_job.progress.edges} links · {c.done_job.progress.seconds}s · {usd(c.done_job.progress.seed_out_usd)} followed</span>}
-                  <Button variant="ghost" className="px-2 py-1 text-[11px]" title="GraphML for Gephi / NetworkX" onClick={() => exportGraph('graphml')}>GraphML</Button>
-                  <Button variant="ghost" className="px-2 py-1 text-[11px]" title="Cypher script for Neo4j" onClick={() => exportGraph('cypher')}>Neo4j</Button>
+                  <Button variant="ghost" className="px-2 py-1 text-[11px]" title="GraphML for Gephi / NetworkX" onClick={exportGraph}>Export GraphML</Button>
                 </div>
               </div>
             )}

@@ -159,16 +159,14 @@ def get_job(job_id: str, db: Session = Depends(get_db), user: User = Depends(cur
 @router.get("/cases/{case_id}/graph/export")
 def export_graph(case_id: str, format: str = "graphml", db: Session = Depends(get_db),
                  user: User = Depends(require("io", "analyst"))):
-    """Trace graph as GraphML (Gephi / NetworkX), Cypher (Neo4j) or JSON."""
+    """Trace graph as GraphML (Gephi / NetworkX) or JSON."""
     c = db.get(Case, case_id)
     job = latest_job(db, case_id, done_only=True)
     if not c or not job:
         raise HTTPException(404, "No completed trace for this case")
     nodes, edges = graphstore.load(db, job)
     name = f"bittrail-case-{c.case_no}"
-    if format == "cypher":
-        body, mt, ext = graphstore.cypher_script(c, nodes, edges), "text/plain", "cypher"
-    elif format == "json":
+    if format == "json":
         body, mt, ext = json.dumps(graph(case_id, db, user), default=str, indent=1), "application/json", "json"
     else:
         body, mt, ext = graphstore.graphml(c, nodes, edges), "application/xml", "graphml"
