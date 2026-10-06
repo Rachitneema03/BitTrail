@@ -8,8 +8,8 @@ import time
 
 from sqlalchemy import delete, func, select
 
-from .adapters import PROVIDERS, AdapterUnavailable, get_adapter
-from .adapters.bridges import lifi_resolver
+from .adapters import AdapterUnavailable, get_adapter, provider_label
+from .adapters import bridges
 from .alert_rules import get_rules, level_at_least
 from .audit import audit
 from .config import BACKEND_DIR, heuristics, settings
@@ -98,15 +98,22 @@ async def run_job(job_id: str) -> None:
         if time.monotonic() - last[0] < 0.5:
             return
         last[0] = time.monotonic()
+        chains = p.get("chains") or []
         with SessionLocal() as db:
             j = db.get(TraceJob, job_id)
-            j.progress = {**p, "message": f"Depth {p['depth']} · {p['nodes']} addresses · {p['edges']} links"}
+            j.progress = {**p, "message": f"Depth {p['depth']} · {p['nodes']} addresses · {p['edges']} links"
+                          + (f" · {len(chains)} chains ({', '.join(chains)})" if len(chains) > 1 else "")
+                          + (f" · {p['bridges']} cross-chain hop{'s' if p['bridges'] != 1 else ''}" if p.get("bridges") else "")}
             db.commit()
 
     try:
         cfg = heuristics()
+
+        async def fallback(chain: str, sender: str, t):
+            return await bridges.same_address_match(chain, sender, t, get_adapter, cfg)
+
         res = await trace(seeds, fraud_time, params, label_index(), get_adapter, cfg, progress,
-                          bridge_resolver=lifi_resolver)
+                          bridge_resolver=bridges.resolve if bridges.enabled() else None, fallback=fallback)
         drafts = score(res, fraud_time, cfg, lambda e: actionability(vasps.get(e)), make_history(case_id))
 
         heights: dict = {}
@@ -160,6 +167,11 @@ async def run_job(job_id: str) -> None:
             _refresh_peer_risk(db, case.id, new_links, cfg)
             analysis = analyze(res, fraud_time, drafts, links, cfg)
             analysis["integrity"] = integrity(res, heights)
+            analysis["crosschain"] = res.crosschain
+            # in trail order (seed chain first), not alphabetical: the UI draws it as "TRON -> ETHEREUM"
+            analysis["chains"] = list(dict.fromkeys(n.chain for n in sorted(res.nodes.values(), key=lambda n: n.depth)
+                                                    if n.depth >= 0))
+            analysis["dust"] = res.dust
             job.analysis = analysis
             _alerts_and_watch(db, case, drafts, res, analysis, rules, prev)
             off = [d for d in drafts if d.role == "off_ramp"]
@@ -168,9 +180,11 @@ async def run_job(job_id: str) -> None:
             job.status, job.finished_at = "done", now()
             job.progress = {"message": "Done", "nodes": len(res.nodes), "edges": len(res.edges),
                             "candidates": len(drafts), "seconds": round(time.monotonic() - t0, 1), "notes": res.notes,
-                            "seed_out_usd": round(res.seed_out_usd, 2)}
+                            "seed_out_usd": round(res.seed_out_usd, 2), "chains": analysis["chains"],
+                            "bridges": len(res.crosschain)}
             audit(db, "trace.done", "trace_job", job_id, None,
                   {"nodes": len(res.nodes), "edges": len(res.edges), "candidates": len(drafts),
+                   "chains": analysis["chains"], "cross_chain_hops": len(res.crosschain),
                    "risk": analysis["risk"]["level"], "ruleset_sha256": analysis["integrity"]["ruleset_sha256"]})
             db.commit()
     except Exception as e:  # noqa: BLE001
@@ -215,9 +229,10 @@ def integrity(res, heights: dict) -> dict:
     return {
         "engine": "BitTrail", "version": s.app_version, "ruleset_sha256": ruleset_sha256(),
         "labels_loaded": labels, "chains": chains,
-        "data_sources": {c: PROVIDERS.get(c, c) for c in chains}
-        | {"prices": "Binance public daily klines (USDT/USDC = $1)", "labels": "Dune Spellbook CEX lists, OFAC SDN, curated"}
-        | ({"bridges": "LI.FI status API"} if any(e.direction == "bridge" for e in edges) else {}),
+        "data_sources": {c: provider_label(c) for c in chains}
+        | {"prices": "Binance public daily klines (USDT/USDC = $1)",
+           "labels": "Dune Spellbook CEX lists, OFAC SDN (official XML, with programs), curated"}
+        | ({"bridges": ", ".join(sorted({h["provider"] for h in res.crosschain}))} if res.crosschain else {}),
         "chain_heights": heights,
         "block_ranges": {c: [min(b), max(b)] for c, b in blocks.items()},
         "time_range": [min(ts).isoformat(), max(ts).isoformat()] if ts else None,
@@ -252,9 +267,19 @@ def _alerts_and_watch(db, case: Case, drafts, res, analysis: dict, rules: dict, 
         if "holds_funds" in n.flags and n.depth > 0 and n.value_share >= 0.05:
             db.add(WatchItem(case_id=case.id, chain=n.chain, address=n.address, reason="private_endpoint", active=active))
         if "sanctioned" in n.flags:
-            db.add(Alert(case_id=case.id, type="sanctioned_hit", severity="high",
-                         message=f"Trail touches an OFAC-sanctioned address {short(n.address)}",
-                         data={"address": n.address, "chain": n.chain}))
+            cats = n.stats.get("risk_categories", [])
+            what = ", ".join(c["label"] for c in cats)
+            db.add(Alert(case_id=case.id, type="high_risk_wallet" if cats else "sanctioned_hit", severity="high",
+                         message=f"Trail touches OFAC-sanctioned {n.stats.get('sanction_entity') or 'address'} "
+                                 f"{short(n.address)} on {n.chain}" + (f": {what}" if what else ""),
+                         data={"address": n.address, "chain": n.chain, "categories": [c["code"] for c in cats],
+                               "entity": n.stats.get("sanction_entity")}))
+    for h in res.crosschain:
+        db.add(Alert(case_id=case.id, type="cross_chain", severity="medium",
+                     message=f"Funds bridged {h['from_chain']} -> {h['to_chain']} via {h['tool'] or h['provider']}: "
+                             f"${h['usd_out']:,.0f} arrived at {short(h['to_address'])} after {h['minutes']:.0f} min "
+                             f"(continuity {h['continuity']:.2f}). Trail continued on {h['to_chain']}.",
+                     data={k: h[k] for k in ("from_chain", "to_chain", "to_address", "dest_tx", "src_tx", "continuity")}))
     big = [e for e in res.edges.values() if e.direction in ("forward", "bridge")
            and e.amount_usd >= rules["large_transfer_usd"]]
     if big:

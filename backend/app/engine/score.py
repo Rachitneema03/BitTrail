@@ -41,7 +41,7 @@ def path_of(res: TraceResult, n: Node) -> list[Node]:
 def path_factor(path: list[Node], cfg: dict) -> tuple[float, str]:
     if any(p.kind == "mixer" for p in path):
         return cfg["path_factor"]["mixer"], "Mixer on path: no attribution"
-    bridges = [p for p in path if p.kind == "bridge"]
+    bridges = [p for p in path if p.kind in ("bridge", "swap_service")]
     if not bridges:
         return cfg["path_factor"]["clean"], "Clean path: no mixer or bridge"
     pf = 1.0
@@ -49,21 +49,21 @@ def path_factor(path: list[Node], cfg: dict) -> tuple[float, str]:
         c = b.stats.get("continuity")
         pf *= (0.5 + 0.5 * c) if c is not None else cfg["path_factor"]["bridge"]
     cs = [b.stats.get("continuity") for b in bridges if b.stats.get("continuity") is not None]
-    why = (f"Cross-chain via {', '.join(b.entity or 'bridge' for b in bridges)}"
+    hops = " -> ".join(dict.fromkeys(p.chain for p in path))
+    why = (f"Cross-chain path {hops} via {', '.join(b.entity or 'bridge' for b in bridges)}"
            + (f": continuity {min(cs):.2f}" if cs else ": continuity unknown, confidence reduced"))
     return round(pf, 4), why
 
 
 def _evidence(res: TraceResult, path: list[Node]) -> dict:
-    tx, chains = 0, set()
+    tx = 0
     for a, b in zip(path, path[1:]):
-        chains.update({a.chain, b.chain})
         for d in ("forward", "sweep", "bridge"):
             e = res.edges.get((a.id, b.id, d))
             if e:
                 tx += e.tx_count
     return {"transactions": tx, "intermediaries": max(0, len(path) - 2), "hops": max(0, len(path) - 1),
-            "chains": sorted(chains) or sorted({p.chain for p in path})}
+            "chains": list(dict.fromkeys(p.chain for p in path))}  # in path order: source chain first
 
 
 def _finish(d: CandidateDraft, signals: dict, pf: float, cfg: dict, evidence: dict) -> None:
@@ -113,7 +113,7 @@ def score(res: TraceResult, fraud_time: datetime, cfg: dict,
             hops=rep.depth, value_share=round(share, 4), value_usd=round(sum(x.value_usd for x in nodes), 2),
             confidence=conf, actionability=act, rank_score=round(share * conf * act, 4),
             signals={**signals, "path_factor": pf}, reasons=reasons, evidence_tx=evidence,
-            path=[p.address for p in path])
+            path=[p.id if p.chain != rep.chain else p.address for p in path])
         _finish(d, signals, pf, cfg, _evidence(res, path))
         drafts.append(d)
 

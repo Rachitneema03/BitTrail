@@ -11,6 +11,27 @@ exchange_cluster:
   # more counterparties than a deposit address would, is inferred to be part of that exchange's cluster.
   min_out_share: 0.6
 
+dust:
+  # Adaptive dust filter: per wallet, ignore transfers below max(TRACE_MIN_USD, relative_share x value reaching it),
+  # capped at max_floor_usd. If the ignored transfers carry >= structuring_share of the outflow, they are not dust
+  # (possible structuring): the floor drops back to TRACE_MIN_USD and the wallet is flagged.
+  adaptive: true
+  relative_share: 0.005
+  max_floor_usd: 1000
+  structuring_share: 0.2
+  poisoning_usd: 1.0            # transfers below this are counted as likely address-poisoning dust
+
+crosschain_probe:
+  # Every new recipient carrying >= min_share of the traced value is checked against the bridge / swap trackers
+  # (by the deposit transaction hash) before its own outflow is followed.
+  min_share: 0.01
+
+coinjoin:
+  # Bitcoin equal-output CoinJoin (Wasabi / Whirlpool / JoinMarket style): treated as a mixer, trail stops.
+  min_inputs: 5
+  min_equal_outputs: 5          # outputs of exactly the same value
+  min_equal_share: 0.4          # ... making up at least this share of all outputs
+
 service_like:
   # Adapters return a sample of the latest <=200 transfers, so thresholds are sample-based.
   min_sample_counterparties: 60
@@ -44,6 +65,8 @@ continuity:                     # cross-chain continuity score = weighted sum of
   destination: 0.1              # destination is not a high-throughput service
   full_minutes: 10
   zero_hours: 24
+  match_window_hours: 6         # unconfirmed fallback: same EVM address, other EVM chain, arrival within this window
+  max_fee_share: 0.03           # ... and no more than 3% less than what entered the bridge
 
 recency:
   full_days: 7
@@ -78,6 +101,9 @@ risk_levels:                    # overall score thresholds
   medium: 30
   high: 55
   critical: 75
+
+requests:
+  approval_below_confidence: 0.7  # an IO's request on a weaker attribution needs an I4C analyst's approval to send
 
 alerts_default:                 # initial alert rules (editable in the UI, stored in the settings table)
   large_transfer_usd: 5000

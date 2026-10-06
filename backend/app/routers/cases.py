@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import graphstore
 from ..adapters import detect_chain, normalize_address
 from ..audit import audit
 from ..auth import current_user, require
@@ -152,6 +154,25 @@ def get_job(job_id: str, db: Session = Depends(get_db), user: User = Depends(cur
     if not j:
         raise HTTPException(404, "Job not found")
     return job_dict(j)
+
+
+@router.get("/cases/{case_id}/graph/export")
+def export_graph(case_id: str, format: str = "graphml", db: Session = Depends(get_db),
+                 user: User = Depends(require("io", "analyst"))):
+    """Trace graph as GraphML (Gephi / NetworkX) or JSON."""
+    c = db.get(Case, case_id)
+    job = latest_job(db, case_id, done_only=True)
+    if not c or not job:
+        raise HTTPException(404, "No completed trace for this case")
+    nodes, edges = graphstore.load(db, job)
+    name = f"bittrail-case-{c.case_no}"
+    if format == "json":
+        body, mt, ext = json.dumps(graph(case_id, db, user), default=str, indent=1), "application/json", "json"
+    else:
+        body, mt, ext = graphstore.graphml(c, nodes, edges), "application/xml", "graphml"
+    audit(db, "graph.export", "case", case_id, user.id, {"format": ext})
+    db.commit()
+    return Response(body, media_type=mt, headers={"Content-Disposition": f'attachment; filename="{name}.{ext}"'})
 
 
 @router.get("/cases/{case_id}/graph")

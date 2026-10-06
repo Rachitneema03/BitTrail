@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import llm
+from .. import llm, rag
 from ..alert_rules import get_rules, save_rules
 from ..audit import audit
 from ..auth import require
@@ -106,16 +106,20 @@ async def ask(case_id: str, data: AskIn, db: Session = Depends(get_db), user: Us
     q = data.question.strip()[:500]
     if not q:
         raise HTTPException(422, "Empty question")
-    if not llm.configured():
-        raise HTTPException(503, "Sarvam AI is not configured (set SARVAM_API_KEY). All evidence is still on this page.")
-    try:
-        answer = await llm.chat(llm.ask_prompt(llm.case_facts(db, c), q), max_tokens=800)
-    except llm.LLMUnavailable as e:
-        raise HTTPException(503, f"Sarvam AI unavailable: {e}")
-    audit(db, "ai.ask", "case", case_id, user.id, {"question": q})
+    passages = rag.retrieve(db, c, q)
+    mode, model, note = "retrieval", None, "Retrieved from this case's computed evidence (BM25). No LLM configured."
+    answer = rag.extractive_answer(passages)
+    if llm.configured() and passages:
+        try:
+            answer = await llm.chat(rag.rag_prompt(q, passages), max_tokens=800)
+            mode, model = "rag+sarvam", llm.status()["model"]
+            note = "AI-written from the cited passages only; not used for attribution. Verify against the transactions."
+        except llm.LLMUnavailable as e:
+            note = f"Sarvam AI unavailable ({e}); showing the retrieved evidence instead."
+    audit(db, "ai.ask", "case", case_id, user.id, {"question": q, "mode": mode, "passages": [p["id"] for p in passages]})
     db.commit()
-    return {"answer": answer, "model": llm.status()["model"],
-            "note": "AI-written from BitTrail's evidence; not used for attribution. Verify against the cited transactions."}
+    return {"answer": answer, "model": model, "mode": mode, "note": note,
+            "citations": [{k: p.get(k) for k in ("n", "id", "kind", "title", "text", "score", "ref")} for p in passages]}
 
 
 @router.post("/requests/{req_id}/translate")

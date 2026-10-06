@@ -17,17 +17,21 @@ class Settings(BaseSettings):
 
     trongrid_api_key: str = ""
     etherscan_api_key: str = ""
+    etherscan_bsc: bool = False   # the Etherscan key is a paid tier that covers BNB Chain (chainid 56)
     bsc_api_base: str = ""        # optional Etherscan-compatible BNB Chain API (Etherscan's free tier excludes BNB)
     bsc_api_key: str = ""
+    blockscout_fallback: bool = True  # Ethereum / Polygon via the keyless Blockscout API when no Etherscan key
     solana_rpc_url: str = "https://api.mainnet-beta.solana.com"  # or a Helius / QuickNode RPC URL
-    bridge_tracker: bool = True   # look up cross-chain destinations via the LI.FI status API
+    bridge_tracker: bool = True   # resolve cross-chain destinations via public bridge / swap trackers
+    crosschain_providers: str = "lifi,thorchain,debridge,wormhole"
+    thorchain_midgard_url: str = "https://gateway.liquify.com/chain/thorchain_midgard/v2"
 
     # Sarvam AI (optional): narrates evidence, answers questions, translates. Never used for attribution.
     sarvam_api_key: str = ""
     sarvam_model: str = "sarvam-105b"
     sarvam_base: str = "https://api.sarvam.ai"
 
-    app_version: str = "0.2.0"
+    app_version: str = "0.3.0"
 
     trace_max_depth: int = 5
     trace_fanout: int = 5
@@ -36,7 +40,7 @@ class Settings(BaseSettings):
     trace_window_days: int = 90
     trace_back_depth: int = 2
 
-    watch_interval_seconds: int = 300
+    watch_interval_seconds: int = 120
     cors_origins: str = "*"
     frontend_dist: str = str(ROOT_DIR / "frontend" / "dist")
 

@@ -19,6 +19,12 @@ export default function RiskPanel({ analysis, chain }: { analysis: Analysis | nu
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold">Risk profile</h3><RiskBadge analysis={analysis} />
         </div>
+        {(r.categories ?? []).map((cat) => (
+          <div key={cat.code} className="mb-3 rounded-xl border border-red/30 bg-red-tint p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2"><Badge tone="red">High-risk exposure</Badge><b className="text-red">{cat.label}</b></div>
+            <div className="mt-1 text-xs text-body">{cat.entities.join(', ')} · OFAC SDN programs {cat.programs.join(', ')} · {cat.addresses.length} address{cat.addresses.length > 1 ? 'es' : ''} on this trail</div>
+          </div>
+        ))}
         <div className="space-y-3">
           {r.axes.map((a) => (
             <div key={a.key}>

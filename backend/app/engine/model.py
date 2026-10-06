@@ -46,7 +46,7 @@ class Edge:
     chain: str
     frm: str
     to: str
-    direction: str  # forward | backward | sweep | bridge
+    direction: str  # forward | backward | sweep | bridge | mix
     assets: set[str] = field(default_factory=set)
     amount_usd: float = 0.0
     value_share: float = 0.0
@@ -67,6 +67,8 @@ class TraceResult:
     edges: dict[tuple[str, str, str], Edge] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     seed_out_usd: float = 0.0
+    crosschain: list[dict] = field(default_factory=list)  # every resolved bridge / swap hop, with continuity
+    dust: dict = field(default_factory=lambda: {"transfers": 0, "usd": 0.0, "poisoning": 0})
 
     def node(self, chain: str, address: str, depth: int) -> tuple[Node, bool]:
         key = f"{chain}:{address}"

@@ -110,22 +110,24 @@ def analyze(res: TraceResult, fraud_time: datetime, drafts: list[CandidateDraft]
 
     # 6. network switching
     chains = sorted({n.chain for n in nodes.values() if n.depth >= 0})
-    bridges = [n for n in nodes.values() if n.kind == "bridge"]
+    bridges = [n for n in nodes.values() if n.kind in ("bridge", "swap_service")]
     if len(chains) > 1 or bridges:
         add("chain_switching", "Network switching", "high",
             f"Funds moved across {' -> '.join(chains) if len(chains) > 1 else 'a bridge'}"
-            + (f" via {', '.join(b.entity or 'bridge' for b in bridges)}" if bridges else ""),
+            + (f" via {', '.join(dict.fromkeys(b.entity or 'bridge' for b in bridges))}" if bridges else ""),
             [b.address for b in bridges], [e for e in fwd if e.direction == "bridge"])
 
     # 7. mixer / sanctions exposure
     mixers = [n for n in nodes.values() if n.kind == "mixer"]
     if mixers:
         add("mixer", "Mixer used", "high", f"Funds entered {mixers[0].entity or 'a mixer'}: attribution stops there",
-            [m.address for m in mixers], [])
+            [m.address for m in mixers], [e for e in res.edges.values() if e.direction == "mix"])
     sanctioned = [n for n in nodes.values() if "sanctioned" in n.flags]
     if sanctioned:
+        cats = {c["label"] for n in sanctioned for c in n.stats.get("risk_categories", [])}
         add("sanctions", "Sanctions exposure", "critical",
-            f"{len(sanctioned)} address(es) on the OFAC SDN list touch this trail", [n.address for n in sanctioned], [])
+            f"{len(sanctioned)} address(es) on the OFAC SDN list touch this trail"
+            + (f": {', '.join(sorted(cats))}" if cats else ""), [n.address for n in sanctioned], [])
 
     # ---- risk axes (0-100) ----
     fwd_nodes = [n for n in nodes.values() if n.depth > 0]
@@ -158,4 +160,15 @@ def analyze(res: TraceResult, fraud_time: datetime, drafts: list[CandidateDraft]
     level = "critical" if overall >= lv["critical"] else "high" if overall >= lv["high"] else "medium" if overall >= lv["medium"] else "low"
     if any(ty["severity"] == "critical" for ty in typologies) and level in ("low", "medium"):
         level = "high"
-    return {"risk": {"overall": overall, "level": level, "axes": axes}, "typologies": typologies}
+    exposure: dict[str, dict] = {}
+    for n in sanctioned:
+        for c in n.stats.get("risk_categories", []):
+            x = exposure.setdefault(c["code"], {**c, "addresses": [], "entities": []})
+            x["addresses"].append(n.address)
+            ent = n.stats.get("sanction_entity")
+            if ent and ent not in x["entities"]:
+                x["entities"].append(ent)
+    if any(c["severity"] == "critical" for c in exposure.values()):
+        level = "critical"
+    return {"risk": {"overall": overall, "level": level, "axes": axes, "categories": list(exposure.values())},
+            "typologies": typologies}

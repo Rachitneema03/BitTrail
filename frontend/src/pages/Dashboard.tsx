@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import type { AlertT, CaseSummary, Stats } from '../api/types'
+import { ChainChip } from '../components/CrossChain'
 import { Badge, Card, Empty, IST, PageHeader, Stat, StatusBadge, cx, pct, usd } from '../components/ui'
 
 export default function Dashboard() {
@@ -57,6 +58,17 @@ export default function Dashboard() {
             </div>
           )}
         </Card>
+        <div className="space-y-6">
+        <Card className="p-5">
+          <h2 className="mb-3 text-lg font-semibold">Multi-chain coverage</h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(s?.chains ?? {}).sort((a, b) => b[1] - a[1]).map(([ch, n]) => (
+              <span key={ch} className="inline-flex items-center gap-1.5"><ChainChip chain={ch} /><span className="text-xs text-muted">{n} case{n > 1 ? 's' : ''}</span></span>))}
+            {!Object.keys(s?.chains ?? {}).length && <span className="text-sm text-muted">No traces yet.</span>}
+          </div>
+          <div className="mt-3 text-sm"><b className="text-[#7A4FBF]">{s?.crosschain_hops ?? 0}</b> cross-chain hop{s?.crosschain_hops === 1 ? '' : 's'} resolved</div>
+          {(s?.crosschain_routes ?? []).map((r) => <div key={r} className="text-xs text-muted">{r.replace('->', ' → ')}</div>)}
+        </Card>
         <Card className="p-5">
           <h2 className="mb-4 text-lg font-semibold">Top VASPs by traced value</h2>
           {s?.top_vasps.length ? s.top_vasps.map((v) => (
@@ -66,6 +78,7 @@ export default function Dashboard() {
             </div>
           )) : <Empty>Nothing attributed yet.</Empty>}
         </Card>
+        </div>
       </div>
 
       <Card className="mt-6 p-5">

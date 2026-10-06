@@ -17,7 +17,8 @@ const EXPLORER_ADDR: Record<string, string> = {
   bsc: 'https://bscscan.com/address/', bitcoin: 'https://mempool.space/address/', solana: 'https://solscan.io/account/',
 }
 export const txUrl = (chain: string, tx: string) => (EXPLORER_TX[chain] ?? '') + tx
-export const addrUrl = (chain: string, a: string) => (EXPLORER_ADDR[chain] ?? '') + a
+/** CoinJoin mixer nodes are transactions, not addresses: link to the transaction. */
+export const addrUrl = (chain: string, a: string) => (a.startsWith('coinjoin:') ? txUrl(chain, a.slice(9)) : (EXPLORER_ADDR[chain] ?? '') + a)
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cx('rounded-2xl border border-line bg-card', className)}>{children}</div>
@@ -70,8 +71,8 @@ export function Empty({ children }: { children: ReactNode }) {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const tone = ({ attributed: 'teal', request_sent: 'blue', tracing: 'orange', open: 'grey', closed: 'navy', confirmed: 'teal', denied: 'red', sent: 'blue', draft: 'grey' } as const)[status as 'open'] ?? 'grey'
-  return <Badge tone={tone}>{status.replace('_', ' ')}</Badge>
+  const tone = ({ attributed: 'teal', request_sent: 'blue', tracing: 'orange', open: 'grey', closed: 'navy', confirmed: 'teal', denied: 'red', sent: 'blue', draft: 'grey', pending_approval: 'orange' } as const)[status as 'open'] ?? 'grey'
+  return <Badge tone={tone}>{status.replaceAll('_', ' ')}</Badge>
 }
 
 export function ConfBar({ value, tone = 'teal' }: { value: number; tone?: 'teal' | 'orange' | 'blue' }) {

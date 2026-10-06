@@ -271,9 +271,13 @@ erDiagram
 | addresses | jsonb | addresses covered |
 | body_md | text | rendered notice |
 | report_id | uuid FK null | attached evidence |
-| status | request_status | |
-| sahyog_ref | text null | mock reference number |
+| status | request_status | `draft` · `pending_approval` (low confidence, IO-drafted) · `sent` · `confirmed` · `denied` |
+| sahyog_ref | text null | mock reference number (`SHG-` Sahyog, `LEP-` LE portal, `MLAT-` international) |
 | sent_at | timestamptz null | |
+| route | jsonb null | `{channel, label, url, why, alt_url, sources[]}` from `labels/registry.route()` (v0.3) |
+| needs_approval | bool null | analyst review required before sending (v0.3) |
+| approved_by | text null | analyst who approved (v0.3) |
+| created_by | uuid null | drafting user (v0.3) |
 
 ### vasp_replies
 | column | type | notes |

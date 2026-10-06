@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, post } from '../api/client'
-import type { AiStatus, Analysis } from '../api/types'
+import type { AiStatus, Analysis, AskResult } from '../api/types'
 import { Badge, Button, Card, cx } from './ui'
 
 /** Sarvam AI: narrates BitTrail's evidence and answers questions. Never used for attribution. */
@@ -9,7 +9,8 @@ export default function AiPanel({ caseId, analysis }: { caseId: string; analysis
   const [lang, setLang] = useState<'en-IN' | 'hi-IN'>('en-IN')
   const [text, setText] = useState<{ text: string; source: string } | null>(null)
   const [q, setQ] = useState('')
-  const [answer, setAnswer] = useState<string | null>(null)
+  const [answer, setAnswer] = useState<AskResult | null>(null)
+  const [openCite, setOpenCite] = useState<number | null>(null)
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
   useEffect(() => { api<AiStatus>('/ai/status').then(setStatus).catch(() => null) }, [])
@@ -26,7 +27,7 @@ export default function AiPanel({ caseId, analysis }: { caseId: string; analysis
   const ask = async () => {
     if (!q.trim()) return
     setBusy('a'); setErr(''); setAnswer(null)
-    try { const r = await post<{ answer: string }>(`/cases/${caseId}/ask`, { question: q }); setAnswer(r.answer) }
+    try { setAnswer(await post<AskResult>(`/cases/${caseId}/ask`, { question: q })); setOpenCite(null) }
     catch (x) { setErr((x as Error).message) } finally { setBusy('') }
   }
 
@@ -47,14 +48,31 @@ export default function AiPanel({ caseId, analysis }: { caseId: string; analysis
         {text && <span className="text-xs text-muted">{text.source === 'sarvam' ? 'AI-written from the evidence; not used for attribution' : 'Template summary (Sarvam AI not configured)'}</span>}
       </div>
       <div className="mt-4 border-t border-line pt-3">
-        <div className="mb-1 text-sm font-semibold">Ask this case</div>
+        <div className="mb-1 flex items-center gap-2 text-sm font-semibold">Ask this case <Badge tone="blue">RAG: retrieval over this case's evidence</Badge></div>
         <div className="flex gap-2">
-          <input className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-1.5 text-sm" placeholder="e.g. Why CoinDCX and not another exchange?"
+          <input className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-1.5 text-sm" placeholder="e.g. Why CoinDCX? Which bridge was used? What does Section 94 require?"
             value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
-          <Button className="px-3 py-1.5 text-xs" onClick={ask} disabled={busy === 'a' || !status?.configured}>{busy === 'a' ? '…' : 'Ask'}</Button>
+          <Button className="px-3 py-1.5 text-xs" onClick={ask} disabled={busy === 'a'}>{busy === 'a' ? '…' : 'Ask'}</Button>
         </div>
-        {!status?.configured && <p className="mt-1 text-xs text-muted">Set SARVAM_API_KEY to enable questions and Hindi output.</p>}
-        {answer && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-paper p-3 text-sm text-body">{answer}</p>}
+        {!status?.configured && <p className="mt-1 text-xs text-muted">Without SARVAM_API_KEY answers are the retrieved evidence itself; with it, Sarvam writes the answer from those passages only.</p>}
+        {answer && (
+          <div className="mt-2 rounded-lg bg-paper p-3">
+            <p className="whitespace-pre-wrap text-sm text-body">{answer.answer}</p>
+            <div className="mt-2 text-[11px] text-muted">{answer.note}</div>
+            {answer.citations.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {answer.citations.map((ct) => (
+                  <div key={ct.n} className="rounded-lg border border-line bg-card text-xs">
+                    <button className="flex w-full items-center gap-2 px-2 py-1 text-left" onClick={() => setOpenCite(openCite === ct.n ? null : ct.n)}>
+                      <span className="font-bold text-blue">[{ct.n}]</span><Badge>{ct.kind}</Badge><span className="truncate">{ct.title}</span>
+                    </button>
+                    {openCite === ct.n && <div className="border-t border-line px-2 py-1.5 text-body">{ct.text}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {err && <p className="mt-2 text-xs text-red">{err}</p>}
     </Card>

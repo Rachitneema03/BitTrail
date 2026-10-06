@@ -66,20 +66,22 @@
 
 | Purpose | Source | Env var |
 |---|---|---|
-| Tron transfers (TRX, USDT-TRC20) | TronGrid | `TRONGRID_API_KEY` |
-| Tron address tags | Tronscan | — |
-| Ethereum + Polygon + BNB Chain | Etherscan API V2 (`chainid=1` / `137` / `56`; BNB needs paid tier or `BSC_API_BASE`) | `ETHERSCAN_API_KEY`, `BSC_API_BASE` |
+| Tron transfers (TRX, USDT-TRC20) | TronGrid (no key needed) | `TRONGRID_API_KEY` (optional) |
+| Ethereum + Polygon | Etherscan API V2 if a key is set, else the **Blockscout** public API (no key) | `ETHERSCAN_API_KEY` (optional) |
+| BNB Chain | Etherscan V2 paid tier or any Etherscan-compatible API | `ETHERSCAN_BSC`, `BSC_API_BASE` |
 | Bitcoin | mempool.space | — |
 | Solana | Solana JSON-RPC (public; Helius URL recommended) | `SOLANA_RPC_URL` |
-| Cross-chain destinations | LI.FI status API | `BRIDGE_TRACKER` |
+| Cross-chain destinations | LI.FI status (incl. Tron, Bitcoin), THORChain Midgard, deBridge DLN, Wormholescan, all by source tx hash, no keys | `BRIDGE_TRACKER`, `CROSSCHAIN_PROVIDERS`, `THORCHAIN_MIDGARD_URL` |
 | Daily USD prices | Binance public daily klines (USDT/USDC = $1) | — |
 | Exchange labels | Dune Spellbook CEX lists (Tron, BTC, Solana, EVM incl. BNB) | — |
-| Mixer / bridge labels | curated lists in `labels/seed.py` (Tornado Cash, LI.FI, Wormhole, Polygon PoS, Across, Stargate) | — |
+| Mixer / bridge labels | curated lists in `labels/seed.py` (Tornado Cash, LI.FI, Wormhole, Polygon PoS, Across, Stargate) + tracker-detected bridges + CoinJoin rule | — |
 | LLM (narration only) | Sarvam AI | `SARVAM_API_KEY` |
-| Sanctioned addresses | OFAC SDN crypto address lists | — |
-| VASP registry (FIU-IND, Sahyog status) | hand-curated `backend/data/vasp_registry.json` | — |
+| Sanctioned addresses + risk category | OFAC SDN official XML (entity + program: CYBER, SDGT/FTO, DPRK, ...) | — |
+| VASP registry (FIU-IND, Sahyog status, LE channel) | `backend/data/vasp_registry.json`, every value cited (Lok Sabha Q.5805 annexure, Delhi HC order 29 Apr 2025, exchanges' LE pages) | — |
 
-Known constraint: Etherscan's free tier no longer covers BNB Chain, Base or Optimism.
+Known constraint: Etherscan's free tier no longer covers BNB Chain, Base or Optimism, and free BNB RPCs refuse historical log queries, so BNB Chain is the one chain that needs a paid key.
+
+Sourced figures (Oct 2026): 54 VDA SPs registered with FIU-IND as on 9 Mar 2026 (Lok Sabha Unstarred Q.5805, 30 Mar 2026); 33 VDA SPs onboarded on Sahyog per I4C's status report recorded by the Delhi HC on 29 Apr 2025; "45+" exchanges is a media figure (Hindustan Times, 4 Jun 2025), not an official one.
 
 ## Core algorithm (reference values)
 
@@ -169,8 +171,9 @@ bittrail/                  (repo root = this folder)
 - [x] Prototype v0.1: phases 1–6 built. Tron / BTC live (ETH / Polygon need `ETHERSCAN_API_KEY`), engine + unit tests, full UI, reports, notices, mock Sahyog + VASP inbox, flywheel, cross-case links, watch poller, Supabase, Dockerfile / Railway config
 - [x] Verified: `pytest` (6 pass) and `scripts/smoke_test.py` pass on SQLite and on Supabase; UI walkthrough in Edge with no browser errors
 - [x] v0.2: explainable scoring (factor points, why-A-not-B, what-if), history factor, exchange-cluster rule, BNB Chain + Solana adapters, LI.FI bridge continuity, typologies + six-axis risk, timeline + replay, configurable alerts + per-case monitoring, consolidated requests, PDF upgrade (timeline, score calc, patterns, integrity), Sarvam AI (summary, ask, Hindi translation), accuracy test (`docs/eval.md`). 13 tests pass; smoke test passes.
-- [ ] Not yet: hosted deployment (needs your Railway account), a demo case ending at Binance, a real cross-chain demo trail (needs `ETHERSCAN_API_KEY`), Docker build tested (Docker isn't installed on the dev machine)
+- [x] v0.3 (team asked for everything in the idea deck): keyless Ethereum / Polygon (Blockscout), multi-chain EVM seeds, cross-chain resolution via LI.FI (Tron, BTC, EVM, Solana) + THORChain + deBridge + Wormhole with proactive bridge-vault detection, adaptive dust filter, CoinJoin stop, OFAC risk categories (ransomware / terror financing / DPRK ...), cited VASP routing (Sahyog / LE portal / MLAT) with analyst approval for low-confidence notices, BM25 RAG for "Ask this case" (works without Sarvam), live alerts (SSE), audit viewer + hash-chain verify, GraphML export (NetworkX), chain swimlane graph. 22 tests pass. See docs/architecture.md §13.
+- [ ] Not yet: hosted deployment (needs your Railway account), BNB Chain history without a paid key, Docker build tested (Docker isn't installed on the dev machine)
 
-**Demo cases** (`backend/data/demo_cases.json`): real Tron wallets `TKxQN5i…` (Case 1) and `TD1Jp17…` (Case 2) both reach CoinDCX deposit `TADSuFLf…` → linked. Case metadata is fictional.
+**Demo cases** (`backend/data/demo_cases.json`): real Tron wallets `TKxQN5i…` (Case 1) and `TD1Jp17…` (Case 2) both reach CoinDCX deposit `TADSuFLf…` → linked. Case 3: Tron `TFsmcL9…` → LI.FI (Layerswap) → Ethereum → KuCoin deposit `0xe2097868…` (sweeps into 3 KuCoin hot wallets). Case 4: Bitcoin `bc1qe5w3…` → THORChain (7 swaps) → Ethereum → Bybit deposit `0x911fe8d6…`. Case metadata is fictional.
 
 **Open decisions:** BNB data source (paid Etherscan tier vs another Etherscan-compatible API)? Helius key for faster Solana? Sarvam model choice (`sarvam-105b` vs `sarvam-30b`)?

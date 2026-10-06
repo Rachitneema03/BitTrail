@@ -69,6 +69,8 @@ def test_cross_chain_continuity_via_bridge():
         return adapters[c]
 
     async def resolver(chain, txs):
+        if not any(t.to_address == "BRIDGE" for t in txs):
+            return []  # the tracker only knows the bridge deposit
         return {"dest_chain": "polygon", "dest_address": "DEST", "dest_tx": "0xdest", "usd_in": 1000, "usd_out": 995,
                 "ts_in": T0 + timedelta(minutes=10), "ts_out": T0 + timedelta(minutes=12), "tool": "testbridge"}
 
